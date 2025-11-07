@@ -24,6 +24,7 @@
       display: block;
       width: 100%;
       height: 100%;
+      z-index: 0;
     }
 
     /* Fixed expand button */
@@ -53,10 +54,54 @@
     #expandBtn:active {
       transform: translateX(-50%) scale(0.98);
     }
+
+    .popup {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(10, 10, 10, 0.8);
+      backdrop-filter: blur(10px);
+      color: white;
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      overflow-y: auto;
+    }
+
+    .popup-content {
+      width: 80%;
+      max-width: 900px;
+      padding: 40px;
+      border-radius: 12px;
+      background: rgba(20, 20, 20, 0.7);
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      position: relative;
+    }
+
+    #closePopup {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 32px;
+      cursor: pointer;
+      color: #ccc;
+    }
+
+    #closePopup:hover {
+      color: white;
+    }
   </style>
 </head>
 <body>
   <button id="expandBtn">Expand</button>
+  <div id="layerPopup" class="popup">
+    <div class="popup-content">
+      <span id="closePopup">&times;</span>
+      <div id="popupBody"></div>
+    </div>
+  </div>
   <script type="module" src="/script.js"></script>
+
 </body>
 </html>

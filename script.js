@@ -294,3 +294,57 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('click', (event) => {
+  // convert mouse position to normalized device coords
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(
+    stackObjects.map(o => o.object),
+    true
+  );
+
+  if (intersects.length > 0) {
+    const clicked = intersects[0].object;
+    showLayerPopup(clicked.name);
+  }
+});
+
+const popup = document.getElementById('layerPopup');
+const popupBody = document.getElementById('popupBody');
+const closePopup = document.getElementById('closePopup');
+
+closePopup.addEventListener('click', () => popup.style.display = 'none');
+
+function showLayerPopup(layerName) {
+  popup.style.display = 'flex';
+
+  let content = '';
+
+  if (layerName === 'Graphite Plate') {
+    content = `
+      <h2>Graphite Plate</h2>
+      <p>The graphite plate serves as the conductive backbone of the cell. It distributes current and helps manage heat and gas flow efficiently.</p>
+      <video src="graphite-demo.mp4" controls style="width:100%;border-radius:8px;margin-top:10px;"></video>
+      <img src="graphite-layer.jpg" style="width:100%;border-radius:8px;margin-top:15px;" />
+    `;
+  } else if (layerName === 'Catalyst-Coated Membrane') {
+    content = `
+      <h2>Catalyst-Coated Membrane (CCM)</h2>
+      <p>This thin layer is where the magic happens — the electrochemical reactions take place here.</p>
+      <img src="ccm-diagram.png" style="width:100%;border-radius:8px;margin-top:10px;" />
+    `;
+  } else {
+    content = `<h2>${layerName}</h2><p>Information coming soon.</p>`;
+  }
+
+  popupBody.innerHTML = content;
+}
+
