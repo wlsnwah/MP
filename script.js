@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
 
 // Add this near your renderer setup:
 const labelRenderer = new CSS2DRenderer();
@@ -25,6 +28,53 @@ function createLabel(text, position) {
   scene.add(label);
   return label;
 }
+
+// function loadGDLModel(yPos, name, callback) {
+//   const loader = new STLLoader();
+//   loader.load('/stack_holder.stl', (geometry) => {
+
+//     const material = new THREE.MeshStandardMaterial({
+//       color: 0x4444ff,
+//       roughness: 0.8,
+//       metalness: 0.2
+//     });
+
+//     const mesh = new THREE.Mesh(geometry, material);
+
+//     mesh.scale.set(0.01, 0.01, 0.01);
+//     mesh.position.y = yPos;
+//     mesh.name = name;
+
+//     scene.add(mesh);
+//     callback(mesh);
+//   });
+// }
+
+function loadGDLModel(yPos, name, callback) {
+  const loader = new GLTFLoader();
+  loader.load('/gdl_model.glb', (gltf) => {
+    const mesh = gltf.scene;
+
+    // Optional: scale and position
+    const box = new THREE.Box3().setFromObject(mesh);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    
+    mesh.scale.set(0.075, 0.075, 0.075); 
+
+    // FIX ORIENTATION (Z-up → Y-up)
+    mesh.rotation.x = -Math.PI / 2;
+
+    mesh.position.y = yPos;
+    mesh.name = name;
+
+    scene.add(mesh);
+    callback(mesh);
+  }, undefined, (error) => {
+    console.error('Error loading GLB:', error);
+  });
+}
+
 
 
 // Scene setup
@@ -235,7 +285,34 @@ layers.forEach(layer => {
   else if (layer.type === 'Graphite Plate') obj = createGraphitePlate(width, layer.h, depth, layer.color, currentY, layer.type);
   else if (layer.type === 'Catalyst-Coated Membrane') obj = createMembrane(width, layer.h, depth, currentY, layer.type);
   else if (layer.type === 'Frame / End Plate') obj = createFrame(width, layer.h, depth, layer.color, currentY, layer.type);
-  else if (layer.type === 'Gas Diffusion Layer') obj = createGDL(width, layer.h, depth, layer.color, currentY, layer.type);
+  // else if (layer.type === 'Gas Diffusion Layer') {
+  //   const baseY = currentY; 
+
+  //   loadGDLModel(currentY, layer.type, (loadedObj) => {
+  //     stackObjects.push({
+  //       object: loadedObj,
+  //       baseY: baseY,
+  //       label: createLabel(layer.type, new THREE.Vector3(width * 0.8, baseY, 0))
+  //     });
+  //   });
+
+  //   currentY += layer.h / 2;
+  //   return;
+  // }
+  else if (layer.type === 'Gas Diffusion Layer') {
+    const baseY = currentY; 
+
+    loadGDLModel(currentY, layer.type, (loadedObj) => {
+      stackObjects.push({
+        object: loadedObj,
+        baseY: baseY,
+        label: createLabel(layer.type, new THREE.Vector3(width * 0.8, baseY, 0))
+      });
+    });
+
+    currentY += layer.h / 2;
+    return;
+  }
   else obj = createLayer(width, layer.h, depth, layer.color, currentY, layer.type);
 
   
@@ -331,17 +408,108 @@ function showLayerPopup(layerName) {
   if (layerName === 'Graphite Plate') {
     content = `
       <h2>Graphite Plate</h2>
-      <p>The graphite plate serves as the conductive backbone of the cell. It distributes current and helps manage heat and gas flow efficiently.</p>
-      <video src="graphite-demo.mp4" controls style="width:100%;border-radius:8px;margin-top:10px;"></video>
-      <img src="graphite-layer.jpg" style="width:100%;border-radius:8px;margin-top:15px;" />
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px>What It Is / How It Looks</h3>
+      <p>
+        A solid, dark grey or black plate made from compressed graphite.  
+        It looks smooth, slightly shiny, and feels light compared to metal.  
+        It often has carved or molded grooves on one side to guide gases through the cell.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px>What It Does</h3>
+      <p>
+        It helps move gases (hydrogen and oxygen/air) across the fuel cell,  
+        collects electrons, and spreads heat evenly.  
+        Think of it as a strong, conductive “backbone” that makes sure everything flows and stays stable.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px>How It’s Made</h3>
+      <p>
+        Graphite powder is mixed with binders, pressed into shape, and then baked at high 
+        temperatures to make it strong and conductive.  
+        Channels or patterns are either machined or molded into the surface.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px>Extra Notes</h3>
+      <p>
+        Graphite plates are popular because they don’t rust, they handle heat well,  
+        and they conduct electricity nicely.  
+        Downsides: they can be fragile and more expensive than stamped metal plates.
+      </p>
     `;
-  } else if (layerName === 'Catalyst-Coated Membrane') {
+  } 
+
+  else if (layerName === 'Current Collector') {
+    content = `
+      <h2>Current Collector</h2>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
+      <p>
+        A thin, rigid plate placed at the outer sides of the fuel cell stack.  
+        It usually appears as a flat metal or carbon-based sheet with smooth surfaces,  
+        sometimes with tabs or contact points for electrical connections.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
+      <p>
+        It gathers the electrons produced inside the cell and delivers them to the 
+        external circuit. Its main purpose is to keep electrical resistance low so 
+        power isn’t wasted as heat.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
+      <p>
+        <strong>Proton-Exchange Membrane Fuel Cells:</strong> Often stainless steel, nickel-coated steel, or graphite plates.  
+        These are typically stamped or machined into shape.<br><br>
+        <strong>Solid Oxide Fuel Cell:</strong> Commonly ferritic steel plates or metal meshes.  
+        Sometimes coated with nickel or gold to resist corrosion and improve conductivity.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
+      <p>
+        A good current collector spreads current evenly, avoids corrosion, and prevents hot spots.  
+        Poor collectors cause big efficiency losses.
+      </p>
+    `;
+  }
+  
+  else if (layerName === 'Catalyst-Coated Membrane') {
     content = `
       <h2>Catalyst-Coated Membrane (CCM)</h2>
-      <p>This thin layer is where the magic happens — the electrochemical reactions take place here.</p>
-      <img src="ccm-diagram.png" style="width:100%;border-radius:8px;margin-top:10px;" />
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
+      <p>
+        A very thin, flexible sheet that sits in the center of the fuel cell.  
+        It looks like a soft plastic film, usually slightly opaque or off-white.  
+        Both sides of this film are coated with a dark, powdery-looking layer — that’s the catalyst.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
+      <p>
+        This is where the actual chemical reaction happens.  
+        The membrane lets protons pass through but blocks electrons.  
+        The catalyst on each side helps split hydrogen and combine oxygen.  
+        In short: this layer is the “heart” of the fuel cell, creating electricity.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
+      <p>
+        A proton-conducting membrane (often Nafion) is used as the base.  
+        Platinum or platinum-alloy particles are mixed into ink and sprayed, rolled, or printed  
+        onto both sides of the membrane.  
+        After that, it’s dried and pressed to make sure the catalyst sticks evenly.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
+      <p>
+        The CCM controls efficiency and durability.  
+        More uniform catalyst layers mean better performance, but platinum is expensive,  
+        so manufacturers try to use the least amount while keeping power high.
+      </p>
     `;
-  } else {
+  }
+  
+  else {
     content = `<h2>${layerName}</h2><p>Information coming soon.</p>`;
   }
 
