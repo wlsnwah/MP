@@ -277,7 +277,8 @@ const layers = [
 
 // Build layers stacked vertically
 const stackObjects = [];
-layers.forEach(layer => {
+let maxLayerHeight = 0; // track largest layer height to space exploded view
+layers.forEach((layer, i) => {
   currentY += layer.h / 2;
   let obj;
 
@@ -301,13 +302,29 @@ layers.forEach(layer => {
   // }
   else if (layer.type === 'Gas Diffusion Layer') {
     const baseY = currentY; 
+    const layerIndex = i;
 
     loadGDLModel(currentY, layer.type, (loadedObj) => {
+      // compute real size and center after any model scale/orientation applied
+      const box = new THREE.Box3().setFromObject(loadedObj);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+
+      // shift model so its center matches intended baseY
+      loadedObj.position.y += (baseY - center.y);
+
+      const realHeight = size.y || layer.h;
       stackObjects.push({
         object: loadedObj,
         baseY: baseY,
+        layerIndex: layerIndex,
+        realHeight: realHeight,
         label: createLabel(layer.type, new THREE.Vector3(width * 0.8, baseY, 0))
       });
+
+      maxLayerHeight = Math.max(maxLayerHeight, realHeight);
     });
 
     currentY += layer.h / 2;
@@ -316,13 +333,27 @@ layers.forEach(layer => {
 
   else if (layer.type === 'Current Collector') {
     const baseY = currentY;
+    const layerIndex = i;
 
     loadCollectorModel(currentY, layer.type, (loadedObj) => {
+      const box = new THREE.Box3().setFromObject(loadedObj);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+
+      loadedObj.position.y += (baseY - center.y);
+
+      const realHeight = size.y || layer.h;
       stackObjects.push({
         object: loadedObj,
         baseY: baseY,
+        layerIndex: layerIndex,
+        realHeight: realHeight,
         label: createLabel(layer.type, new THREE.Vector3(width * 0.8, baseY, 0))
       });
+
+      maxLayerHeight = Math.max(maxLayerHeight, realHeight);
     });
 
     currentY += layer.h / 2;
@@ -334,8 +365,11 @@ layers.forEach(layer => {
   stackObjects.push({
     object: obj,
     baseY: currentY,
+    layerIndex: i,
+    realHeight: layer.h,
     label: createLabel(layer.type, new THREE.Vector3(width * 0.8, currentY, 0))
   });
+  maxLayerHeight = Math.max(maxLayerHeight, layer.h);
   currentY += layer.h / 2;
 });
 
@@ -364,8 +398,10 @@ function animate() {
   controls.update();
 
   stackObjects.forEach((item, index) => {
+    const idx = (typeof item.layerIndex === 'number') ? item.layerIndex : index;
+    const spacing = (maxLayerHeight || 0.2) + explodeDistance;
     const targetY = exploded
-      ? item.baseY + index * explodeDistance
+      ? item.baseY + idx * spacing
       : item.baseY;
 
     item.object.position.y += (targetY - item.object.position.y) * 0.15;
