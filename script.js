@@ -429,7 +429,6 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 window.addEventListener('click', (event) => {
-  // convert mouse position to normalized device coords
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -440,10 +439,17 @@ window.addEventListener('click', (event) => {
   );
 
   if (intersects.length > 0) {
-    const clicked = intersects[0].object;
+    let clicked = intersects[0].object;
+
+    // Traverse up to find the group with a proper name
+    while (clicked.parent && !stackObjects.find(o => o.object === clicked)) {
+      clicked = clicked.parent;
+    }
+
     showLayerPopup(clicked.name);
   }
 });
+
 
 const popup = document.getElementById('layerPopup');
 const popupBody = document.getElementById('popupBody');
@@ -460,28 +466,28 @@ function showLayerPopup(layerName) {
     content = `
       <h2>Graphite Plate</h2>
 
-      <h3 style = "margin-top: 12px; margin-bottom: 5px>What It Is / How It Looks</h3>
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
       <p>
         A solid, dark grey or black plate made from compressed graphite.  
         It looks smooth, slightly shiny, and feels light compared to metal.  
         It often has carved or molded grooves on one side to guide gases through the cell.
       </p>
 
-      <h3 style = "margin-top: 12px; margin-bottom: 5px>What It Does</h3>
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
       <p>
         It helps move gases (hydrogen and oxygen/air) across the fuel cell,  
         collects electrons, and spreads heat evenly.  
         Think of it as a strong, conductive “backbone” that makes sure everything flows and stays stable.
       </p>
 
-      <h3 style = "margin-top: 12px; margin-bottom: 5px>How It’s Made</h3>
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
       <p>
         Graphite powder is mixed with binders, pressed into shape, and then baked at high 
         temperatures to make it strong and conductive.  
         Channels or patterns are either machined or molded into the surface.
       </p>
 
-      <h3 style = "margin-top: 12px; margin-bottom: 5px>Extra Notes</h3>
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
       <p>
         Graphite plates are popular because they don’t rust, they handle heat well,  
         and they conduct electricity nicely.  
@@ -556,6 +562,105 @@ function showLayerPopup(layerName) {
         The CCM controls efficiency and durability.  
         More uniform catalyst layers mean better performance, but platinum is expensive,  
         so manufacturers try to use the least amount while keeping power high.
+      </p>
+    `;
+  }
+
+  else if (layerName === 'Gasket') {
+    content = `
+      <h2>Gasket</h2>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
+      <p>
+        A soft, flexible ring or frame made of rubber, silicone, or other polymer material.  
+        It usually looks black or dark-colored and is shaped to fit around the edges of fuel cell layers.  
+        Sometimes it has a simple flat design or slightly raised edges for sealing.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
+      <p>
+        The gasket’s job is to keep gases (like hydrogen and oxygen) and liquids from leaking out of the fuel cell.  
+        It acts like a seal, making sure everything stays in the right path and pressure is maintained.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
+      <p>
+        Gaskets are molded or cut from rubber, silicone, or other polymer sheets.  
+        They can be made soft or slightly firm depending on how tightly the layers need to be pressed together.  
+        Some are treated to resist heat, chemicals, or compression over time.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
+      <p>
+        A good gasket is essential for safety and efficiency.  
+        If the seal fails, gas can leak, which reduces power and can be dangerous.
+      </p>
+    `;
+  }
+
+  else if (layerName === 'Gas Diffusion Layer') {
+    content = `
+      <h2>Gas Diffusion Layer (GDL)</h2>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
+      <p>
+        A thin, porous sheet usually made of carbon fiber or carbon paper.  
+        It looks dark grey or black, slightly rough, and feels like a very dense, stiff paper or fabric.  
+        Sometimes it has a shiny side coated with a thin layer of Teflon (PTFE) to repel water.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
+      <p>
+        The GDL helps gases (hydrogen and oxygen/air) reach the catalyst layer evenly.  
+        It also allows water produced in the reaction to drain away and conducts electrons from the catalyst to the current collector.  
+        Think of it as a “traffic manager” for gases, water, and electrons.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
+      <p>
+        Carbon fibers or carbon paper are pressed together to form a dense, porous sheet.  
+        Then, a thin PTFE coating may be applied to one side to improve water management.  
+        Some GDLs are treated to have specific porosity or thickness depending on the fuel cell design.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
+      <p>
+        The GDL must balance gas flow, water removal, and electrical conductivity.  
+        Too dense and gases can’t pass; too loose and electrons don’t travel efficiently.  
+        Good GDL design is critical for stable and efficient fuel cell operation.
+      </p>
+    `;
+  }
+
+  else if (layerName === 'Frame / End Plate') {
+    content = `
+      <h2>Frame / End Plate</h2>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
+      <p>
+        A thick, rigid plate made of metal (like stainless steel or aluminum) or composite material.  
+        It looks solid and flat, often with bolts or holes at the edges to hold the fuel cell stack together.  
+        Usually located at the very ends of the stack.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
+      <p>
+        The frame or end plate holds the entire fuel cell stack together, applying uniform pressure across all layers.  
+        It ensures good contact between layers and prevents warping or leaks.  
+        Think of it as the “skeleton” keeping the stack stable and strong.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
+      <p>
+        Typically machined or stamped from metal plates.  
+        The surface may be coated or treated to resist corrosion.  
+        Holes or threads are added for bolts to compress the stack evenly.
+      </p>
+
+      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
+      <p>
+        End plates are not directly involved in the chemical reaction, but without them, the stack wouldn’t stay together.  
+        Proper pressure from end plates also improves electrical contact and overall efficiency.
       </p>
     `;
   }
