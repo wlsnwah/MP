@@ -29,27 +29,6 @@ function createLabel(text, position) {
   return label;
 }
 
-// function loadGDLModel(yPos, name, callback) {
-//   const loader = new STLLoader();
-//   loader.load('/stack_holder.stl', (geometry) => {
-
-//     const material = new THREE.MeshStandardMaterial({
-//       color: 0x4444ff,
-//       roughness: 0.8,
-//       metalness: 0.2
-//     });
-
-//     const mesh = new THREE.Mesh(geometry, material);
-
-//     mesh.scale.set(0.01, 0.01, 0.01);
-//     mesh.position.y = yPos;
-//     mesh.name = name;
-
-//     scene.add(mesh);
-//     callback(mesh);
-//   });
-// }
-
 function loadGDLModel(yPos, name, callback) {
   const loader = new GLTFLoader();
   loader.load('/gdl_model.glb', (gltf) => {
@@ -75,6 +54,27 @@ function loadGDLModel(yPos, name, callback) {
   });
 }
 
+function loadCollectorModel(yPos, name, callback) {
+  const loader = new GLTFLoader();
+  loader.load('/current_collector.glb', (gltf) => {
+    const mesh = gltf.scene;
+
+    // Optional scale
+    mesh.scale.set(2.9, 2.9, 2.9); // try big first
+
+    // Fix orientation if needed (most CAD = Z-up)
+    mesh.rotation.x = -Math.PI / 2;
+
+    mesh.position.y = yPos;
+    mesh.name = name;
+
+    scene.add(mesh);
+    callback(mesh);
+
+  }, undefined, (error) => {
+    console.error('Error loading Collector GLB:', error);
+  });
+}
 
 
 // Scene setup
@@ -303,6 +303,21 @@ layers.forEach(layer => {
     const baseY = currentY; 
 
     loadGDLModel(currentY, layer.type, (loadedObj) => {
+      stackObjects.push({
+        object: loadedObj,
+        baseY: baseY,
+        label: createLabel(layer.type, new THREE.Vector3(width * 0.8, baseY, 0))
+      });
+    });
+
+    currentY += layer.h / 2;
+    return;
+  }
+
+  else if (layer.type === 'Current Collector') {
+    const baseY = currentY;
+
+    loadCollectorModel(currentY, layer.type, (loadedObj) => {
       stackObjects.push({
         object: loadedObj,
         baseY: baseY,
