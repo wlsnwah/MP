@@ -1,0 +1,37 @@
+body {
+    margin: 0;
+    overflow: hidden; /* Prevent scrollbars */
+    background-color: #f0f0f0; /* Light gray background */
+}
+
+#viewer-container {
+    width: 100vw;
+    height: 100vh;
+}
+
+#button-container {
+    /* FIX: Position the buttons at the bottom right */
+    position: absolute;
+    bottom: 20px;       
+    right: 20px;        
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    border-radius: 8px;
+    z-index: 10;        /* Ensure buttons are above the 3D canvas */
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}

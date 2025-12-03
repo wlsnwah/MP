@@ -1,674 +1,299 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+// --- Configuration ---
+// GLOBAL SCALE FACTOR: This fixes the "too big" issue (e.g., converting mm to meters)
+const SCALE_FACTOR = 0.005;
+
+// 💡 GAP CONTROL: Increase this value (e.g., from 5.0 to 6.0) to MINIMIZE the gap in the ASSEMBLED stack.
+const COMPRESSION_RATIO = 15.0;
+
+// 💡 EXPLOSION CONTROL: Decrease this value (e.g., from 1.0 to 0.5) to make the EXPLODED view smaller.
+const EXPLOSION_SCALE = 0.3;
+
+const ANIMATION_DURATION = 1.2;
+
+// --- Manual Hotfix for Bipolar Plate Position ---
+const BIPOLAR_X_SHIFT = 0.0; // Positive moves Right, Negative moves Left
+const BIPOLAR_Z_SHIFT = 0.4; // Positive moves Backward, Negative moves Forward
+// ------------------------------------------------
+
+// --- Manual Hotfix for GDL_Top Position ---
+const GDL_TOP_X_SHIFT = 1.2; // Positive moves Right, Negative moves Left
+const GDL_TOP_Z_SHIFT = 0.0; // Positive moves Backward, Negative moves Forward
+// ------------------------------------------
+
+// --- Manual Y-Shift Constants for all parts ---
+const STACK_HOLDER_Y_SHIFT = 0.3;
+const COLLECTOR_BOTTOM_Y_SHIFT = 0.3;
+const BIPOLAR_LAYER_Y_SHIFT = 0.26;
+const GDL_BOTTOM_Y_SHIFT = .26;
+const CCM_LAYER_Y_SHIFT = 0.23;
+const GDL_TOP_Y_SHIFT = .2;
+const COLLECTOR_TOP_Y_SHIFT = .21;
+const UPMOST_SUP_REVISIONED_Y_SHIFT = 0.22;
+// ----------------------------------------------
 
 
-// Add this near your renderer setup:
-const labelRenderer = new CSS2DRenderer();
-labelRenderer.setSize(window.innerWidth, window.innerHeight);
-labelRenderer.domElement.style.position = 'absolute';
-labelRenderer.domElement.style.top = '0';
-labelRenderer.domElement.style.pointerEvents = 'none';
-document.body.appendChild(labelRenderer.domElement);
-
-// Function to create text label (no box)
-function createLabel(text, position) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  div.style.color = '#fff'; // dark text for white background
-  div.style.fontSize = '10px';
-  div.style.fontWeight = '700';
-  div.style.textShadow = '1px 1px 2px rgba(255,255,255,0.7)';
-  div.style.whiteSpace = 'nowrap';
-
-  const label = new CSS2DObject(div);
-  label.position.copy(position);
-  scene.add(label);
-  return label;
-}
-
-function loadGDLModel(yPos, name, callback) {
-  const loader = new GLTFLoader();
-  loader.load('/gdl_model.glb', (gltf) => {
-    const mesh = gltf.scene;
-
-    // Optional: scale and position
-    const box = new THREE.Box3().setFromObject(mesh);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    
-    mesh.scale.set(0.075, 0.075, 0.075); 
-
-    // FIX ORIENTATION (Z-up → Y-up)
-    mesh.rotation.x = -Math.PI / 2;
-
-    mesh.position.y = yPos;
-    mesh.name = name;
-
-    scene.add(mesh);
-    callback(mesh);
-  }, undefined, (error) => {
-    console.error('Error loading GLB:', error);
-  });
-}
-
-function loadCollectorModel(yPos, name, callback) {
-  const loader = new GLTFLoader();
-  loader.load('/current_collector.glb', (gltf) => {
-    const mesh = gltf.scene;
-
-    // Optional scale
-    mesh.scale.set(2.9, 2.9, 2.9); // try big first
-
-    // Fix orientation if needed (most CAD = Z-up)
-    mesh.rotation.x = -Math.PI / 2;
-
-    mesh.position.y = yPos;
-    mesh.name = name;
-
-    scene.add(mesh);
-    callback(mesh);
-
-  }, undefined, (error) => {
-    console.error('Error loading Collector GLB:', error);
-  });
-}
-
-
-// Scene setup
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0e0e0e);
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(3, 3, 8);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-
-// Lighting
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-dirLight.position.set(5, 10, 5);
-scene.add(dirLight);
-
-// Helper function to create layers
-function createLayer(width, height, depth, color, yPos, name) {
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  const material = new THREE.MeshStandardMaterial({ color });
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.y = yPos;
-  mesh.name = name;
-  scene.add(mesh);
-  return mesh;
-}
-
-function createGraphitePlate(width, height, depth, color, yPos, name) {
-  const group = new THREE.Group();
-
-  const base = new THREE.Mesh(
-    new THREE.BoxGeometry(width, height, depth),
-    new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0.1 })
-  );
-  group.add(base);
-
-  // Visible grooves
-  for (let i = -1; i <= 1; i++) {
-    const groove = new THREE.Mesh(
-      new THREE.BoxGeometry(width * 0.9, height * 1.01, 0.05),
-      new THREE.MeshStandardMaterial({ color: 0x0d0d0d })
-    );
-    groove.position.set(0, 0, i * 0.45);
-    group.add(groove);
-  }
-
-  group.position.y = yPos;
-  group.name = name;
-  scene.add(group);
-  return group;
-}
-
-
-// Catalyst-Coated Membrane (thin transparent layer)
-function createMembrane(width, height, depth, yPos, name) {
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  const material = new THREE.MeshStandardMaterial({
-    color: 0xffcccc,
-    transparent: true,
-    opacity: 0.6
-  });
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.y = yPos;
-  mesh.name = name;
-  scene.add(mesh);
-  return mesh;
-}
-
-// Improved Gasket (thin ring frame)
-function createGasket(width, height, depth, color, yPos, name) {
-  const outer = new THREE.BoxGeometry(width, height, depth);
-  const inner = new THREE.BoxGeometry(width * 0.8, height * 1.1, depth * 0.8);
-
-  // Boolean subtract using THREE shape group
-  const outerMesh = new THREE.Mesh(outer);
-  const innerMesh = new THREE.Mesh(inner);
-  const gasketGroup = new THREE.Group();
-
-  outerMesh.material = new THREE.MeshStandardMaterial({ color });
-  innerMesh.material = new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0 });
-
-  gasketGroup.add(outerMesh);
-  gasketGroup.add(innerMesh);
-  gasketGroup.position.y = yPos;
-  gasketGroup.name = name;
-  scene.add(gasketGroup);
-
-  return gasketGroup;
-}
-
-// ✅ Improved Frame / End Plate (with inlet/outlet holes)
-function createFrame(width, height, depth, color, yPos, name) {
-  const group = new THREE.Group();
-
-  const plateGeometry = new THREE.BoxGeometry(width, height, depth);
-  const plateMaterial = new THREE.MeshStandardMaterial({ color });
-  const plate = new THREE.Mesh(plateGeometry, plateMaterial);
-  group.add(plate);
-
-  // Inlet/outlet circular holes (visually represented as black cylinders)
-  const holeGeometry = new THREE.CylinderGeometry(0.25, 0.25, height + 0.01, 32);
-  const holeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
-
-  const inlet = new THREE.Mesh(holeGeometry, holeMaterial);
-  inlet.position.set(1, 0, 1);
-  inlet.rotation.z = Math.PI / 2;
-  group.add(inlet);
-
-  const outlet = new THREE.Mesh(holeGeometry, holeMaterial);
-  outlet.position.set(-1, 0, -1);
-  outlet.rotation.z = Math.PI / 2;
-  group.add(outlet);
-
-  group.position.y = yPos;
-  group.name = name;
-  scene.add(group);
-  return group;
-}
-
-// ✅ Improved Gas Diffusion Layer (perforated texture / carbon mesh look)
-function createGDL(width, height, depth, color, yPos, name) {
-  const group = new THREE.Group();
-
-  // Tiny bumps/holes to simulate porous material
-  const baseGeometry = new THREE.BoxGeometry(width, height, depth);
-  const baseMaterial = new THREE.MeshStandardMaterial({
-    color,
-    roughness: 0.8,
-    metalness: 0.2
-  });
-  const base = new THREE.Mesh(baseGeometry, baseMaterial);
-  group.add(base);
-
-  // Add small black circles as pores
-  for (let x = -1; x <= 1; x += 1) {
-    for (let z = -1; z <= 1; z += 1) {
-      const pore = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.05, 0.05, height + 0.01, 16),
-        new THREE.MeshStandardMaterial({ color: 0x000000 })
-      );
-      pore.position.set(x, 0, z);
-      pore.rotation.z = Math.PI / 2;
-      group.add(pore);
-    }
-  }
-
-  group.position.y = yPos;
-  group.name = name;
-  scene.add(group);
-  return group;
-}
-
-// Starting Y position
-let currentY = 0;
-
-// Layer thickness
-const thickness = {
-  frame: 0.25,
-  collector: 0.15,
-  graphite: 0.15,
-  gasket: 0.08,
-  gdl: 0.1,
-  ccm: 0.12
-};
-
-// Stack colors
-const color = {
-  frame: 0x606060,
-  collector: 0xffb84d,
-  graphite: 0x1a1a1a,
-  gasket: 0x00ffff,
-  gdl: 0x4444ff,
-  ccm: 0xff4d4d
-};
-
-// Width (smaller in the middle for realism)
-const width = 3;
-const depth = 3;
-
-// Create stack (top to bottom)
-const layers = [
-  { type: 'Frame / End Plate', color: color.frame, h: thickness.frame },
-  { type: 'Current Collector', color: color.collector, h: thickness.collector },
-  { type: 'Graphite Plate', color: color.graphite, h: thickness.graphite },
-  { type: 'Gasket', color: color.gasket, h: thickness.gasket },
-  { type: 'Gas Diffusion Layer', color: color.gdl, h: thickness.gdl },
-  { type: 'Catalyst-Coated Membrane', color: color.ccm, h: thickness.ccm },
-  { type: 'Gas Diffusion Layer', color: color.gdl, h: thickness.gdl },
-  { type: 'Gasket', color: color.gasket, h: thickness.gasket },
-  { type: 'Graphite Plate', color: color.graphite, h: thickness.graphite },
-  { type: 'Current Collector', color: color.collector, h: thickness.collector },
-  { type: 'Frame / End Plate', color: color.frame, h: thickness.frame }
+// Layer order: 1 (Bottom) to 8 (Top). Offsets scaled to match SCALE_FACTOR.
+const COMPONENT_FILES = [
+    { name: 'stack_holder', path: 'stack_holder_prt.glb', offset: -4.0, manualYShift: STACK_HOLDER_Y_SHIFT },
+    { name: 'collector_bottom', path: 'collector_layer_prt.glb', offset: -3.0, manualYShift: COLLECTOR_BOTTOM_Y_SHIFT },
+    { name: 'bipolar_layer', path: 'bipolar_layer_prt.glb', offset: -2.0, manualYShift: BIPOLAR_LAYER_Y_SHIFT },
+    { name: 'gdl_bottom', path: 'layer_bot_gdl_prt.glb', offset: -1.0, manualYShift: GDL_BOTTOM_Y_SHIFT },
+    { name: 'ccm_layer', path: 'ccm_layer_prt.glb', offset: 0.0, manualYShift: CCM_LAYER_Y_SHIFT },
+    { name: 'gdl_top', path: 'layer_testing_prt.glb', offset: 1.0, manualYShift: GDL_TOP_Y_SHIFT },
+    { name: 'collector_top', path: 'collector_top.glb', offset: 2.0, manualYShift: COLLECTOR_TOP_Y_SHIFT },
+    { name: 'upmost_sup_revisioned', path: 'upmost_sup_revisioned_prt.glb', offset: 3.0, manualYShift: UPMOST_SUP_REVISIONED_Y_SHIFT },
 ];
 
-// Build layers stacked vertically
-const stackObjects = [];
-let maxLayerHeight = 0; // track largest layer height to space exploded view
-layers.forEach((layer, i) => {
-  currentY += layer.h / 2;
-  let obj;
+// --- Core Three.js Setup ---
+const container = document.getElementById('viewer-container');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(
+    50,
+    container.clientWidth / container.clientHeight,
+    0.01,
+    100
+);
 
-  if (layer.type === 'Gasket') obj = createGasket(width, layer.h, depth, layer.color, currentY, layer.type);
-  else if (layer.type === 'Graphite Plate') obj = createGraphitePlate(width, layer.h, depth, layer.color, currentY, layer.type);
-  else if (layer.type === 'Catalyst-Coated Membrane') obj = createMembrane(width, layer.h, depth, currentY, layer.type);
-  else if (layer.type === 'Frame / End Plate') obj = createFrame(width, layer.h, depth, layer.color, currentY, layer.type);
-  // else if (layer.type === 'Gas Diffusion Layer') {
-  //   const baseY = currentY; 
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+container.appendChild(renderer.domElement);
 
-  //   loadGDLModel(currentY, layer.type, (loadedObj) => {
-  //     stackObjects.push({
-  //       object: loadedObj,
-  //       baseY: baseY,
-  //       label: createLabel(layer.type, new THREE.Vector3(width * 0.8, baseY, 0))
-  //     });
-  //   });
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.minDistance = 0.5;
+controls.maxDistance = 5;
 
-  //   currentY += layer.h / 2;
-  //   return;
-  // }
-  else if (layer.type === 'Gas Diffusion Layer') {
-    const baseY = currentY; 
-    const layerIndex = i;
+// Lighting setup
+const sceneBackground = new THREE.Color(0xeeeeee);
+scene.background = sceneBackground;
 
-    loadGDLModel(currentY, layer.type, (loadedObj) => {
-      // compute real size and center after any model scale/orientation applied
-      const box = new THREE.Box3().setFromObject(loadedObj);
-      const size = new THREE.Vector3();
-      box.getSize(size);
-      const center = new THREE.Vector3();
-      box.getCenter(center);
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+const cubeRenderTarget = pmremGenerator.fromScene(scene);
+scene.environment = cubeRenderTarget.texture;
+pmremGenerator.dispose();
 
-      // shift model so its center matches intended baseY
-      loadedObj.position.y += (baseY - center.y);
 
-      const realHeight = size.y || layer.h;
-      stackObjects.push({
-        object: loadedObj,
-        baseY: baseY,
-        layerIndex: layerIndex,
-        realHeight: realHeight,
-        label: createLabel(layer.type, new THREE.Vector3(width * 0.8, baseY, 0))
-      });
+const directionalLight = new THREE.DirectionalLight(0xffffff, 3.0);
+directionalLight.position.set(10, 10, 5);
+scene.add(directionalLight);
 
-      maxLayerHeight = Math.max(maxLayerHeight, realHeight);
+camera.position.set(0.5, 2.5, 2.5);
+
+// --- Model Loading Logic ---
+const loader = new THREE.GLTFLoader();
+const componentMeshes = [];
+const originalPositions = new Map();
+const clock = new THREE.Clock();
+
+
+/**
+ * Applies a white MeshStandardMaterial (PBR) and ensures geometry has vertex normals.
+ * @param {THREE.Mesh | THREE.Group} mesh The component mesh.
+ */
+function applyShadingAndColor(mesh) {
+    const WHITE_COLOR = 0xFFFFFF;
+    const newMaterial = new THREE.MeshStandardMaterial({
+        color: WHITE_COLOR,
+        metalness: 0.1,
+        roughness: 0.5,
     });
 
-    currentY += layer.h / 2;
-    return;
-  }
+    mesh.traverse(child => {
+        if (child.isMesh) {
+            child.material = newMaterial;
+            child.geometry.computeVertexNormals();
+        }
+    });
+}
 
-  else if (layer.type === 'Current Collector') {
-    const baseY = currentY;
-    const layerIndex = i;
-
-    loadCollectorModel(currentY, layer.type, (loadedObj) => {
-      const box = new THREE.Box3().setFromObject(loadedObj);
-      const size = new THREE.Vector3();
-      box.getSize(size);
-      const center = new THREE.Vector3();
-      box.getCenter(center);
-
-      loadedObj.position.y += (baseY - center.y);
-
-      const realHeight = size.y || layer.h;
-      stackObjects.push({
-        object: loadedObj,
-        baseY: baseY,
-        layerIndex: layerIndex,
-        realHeight: realHeight,
-        label: createLabel(layer.type, new THREE.Vector3(width * 0.8, baseY, 0))
-      });
-
-      maxLayerHeight = Math.max(maxLayerHeight, realHeight);
+/**
+ * Creates an outline using EdgesGeometry, which is better for complex meshes and holes.
+ * This technique only draws lines where face angles are sharp, resulting in a cleaner look.
+ * @param {THREE.Mesh} mesh The component mesh to outline.
+ */
+function createEdgeOutline(mesh) {
+    const outlineMaterial = new THREE.LineBasicMaterial({
+        color: 0x000000,
+        linewidth: 2, // Note: linewidth is often ignored by WebGL renderers
     });
 
-    currentY += layer.h / 2;
-    return;
-  }
-  else obj = createLayer(width, layer.h, depth, layer.color, currentY, layer.type);
+    mesh.traverse(child => {
+        if (child.isMesh) {
+            // Create EdgesGeometry from the mesh's geometry.
+            // Angle (in degrees) determines which edges are drawn. Default is 1 degree.
+            const edges = new THREE.EdgesGeometry(child.geometry, 30); // 30 degrees is a good value for sharp edges
 
-  
-  stackObjects.push({
-    object: obj,
-    baseY: currentY,
-    layerIndex: i,
-    realHeight: layer.h,
-    label: createLabel(layer.type, new THREE.Vector3(width * 0.8, currentY, 0))
-  });
-  maxLayerHeight = Math.max(maxLayerHeight, layer.h);
-  currentY += layer.h / 2;
+            const line = new THREE.LineSegments(edges, outlineMaterial);
+
+            // Set the scale of the line to match the original mesh's scale relative to its parent (the group)
+            line.scale.copy(child.scale);
+            line.position.copy(child.position);
+            line.rotation.copy(child.rotation);
+
+            // Add the line object to the same parent as the original mesh
+            child.parent.add(line);
+        }
+    });
+}
+
+
+function loadComponent(index) {
+    if (index >= COMPONENT_FILES.length) {
+        onAllComponentsLoaded();
+        return;
+    }
+
+    const component = COMPONENT_FILES[index];
+    const manualYShift = component.manualYShift || 0.0;
+
+    loader.load(
+        component.path,
+        function (gltf) {
+            const mesh = gltf.scene;
+
+            let componentMesh = null;
+            mesh.traverse(child => {
+                if (child.isMesh || child.isGroup) {
+                    child.name = component.name;
+                    componentMesh = child;
+                }
+            });
+
+            if (componentMesh) {
+
+                // Wrap the mesh in a Group for animation
+                const componentGroup = new THREE.Group();
+                componentGroup.add(componentMesh);
+
+                componentMesh.position.set(0, 0, 0);
+
+                applyShadingAndColor(componentMesh);
+
+                // --- Rotation & X/Z Hotfix Logic (on the mesh, inside the group) ---
+                if (component.name === 'bipolar_layer') {
+                    componentMesh.rotation.set(0, 0, 0);
+
+                    componentMesh.position.x = BIPOLAR_X_SHIFT;
+                    componentMesh.position.z = BIPOLAR_Z_SHIFT;
+
+                } else {
+                    componentMesh.rotation.x = -Math.PI / 2;
+
+                    if (component.name === 'gdl_top') {
+                        componentMesh.rotation.y = Math.PI;
+
+                        componentMesh.position.x = GDL_TOP_X_SHIFT;
+                        componentMesh.position.z = GDL_TOP_Z_SHIFT;
+                    }
+                }
+
+                // Apply scale to the mesh
+                componentMesh.scale.set(SCALE_FACTOR, SCALE_FACTOR, SCALE_FACTOR);
+
+                // --- NEW Outline using EdgesGeometry for a clean look ---
+                createEdgeOutline(componentMesh);
+
+
+                // Apply assembled Y position using compression ratio
+                const scaledOffset = component.offset;
+                const initialAssembledY = scaledOffset / COMPRESSION_RATIO;
+
+                // Set position on the Group (componentGroup)
+                componentGroup.position.y = initialAssembledY + manualYShift;
+
+
+                componentGroup.userData.explosionOffset = scaledOffset;
+                componentGroup.userData.manualYShift = manualYShift;
+
+                scene.add(componentGroup);
+                componentMeshes.push(componentGroup);
+
+                // Save assembled position (includes the manual shift)
+                originalPositions.set(componentGroup, componentGroup.position.clone());
+
+            } else {
+                console.error(`Could not find mesh object in ${component.path}`);
+            }
+
+            loadComponent(index + 1);
+        },
+        () => { },
+        error => {
+            console.error(`Error loading ${component.path}:`, error);
+            loadComponent(index + 1);
+        }
+    );
+}
+
+function onAllComponentsLoaded() {
+    console.log(`All ${componentMeshes.length} components loaded.`);
+}
+
+loadComponent(0);
+
+// --- Component Animation Logic ---
+const partsToAnimate = [];
+
+function animateExplosion(explode) {
+    if (componentMeshes.length === 0) return;
+    partsToAnimate.length = 0;
+
+    const assemblyBaseY = 0;
+
+    componentMeshes.forEach(mesh => {
+        const assembledPos = originalPositions.get(mesh);
+        if (!assembledPos) return;
+
+        const offset = mesh.userData.explosionOffset || 0;
+        const manualYShift = mesh.userData.manualYShift || 0;
+        const targetPos = new THREE.Vector3();
+
+        targetPos.x = assembledPos.x;
+        targetPos.z = assembledPos.z;
+
+        if (explode) {
+            // Exploded Y position: (Layer Offset * Explosion Scale) + Manual Y Shift
+            targetPos.y = assemblyBaseY + (offset * EXPLOSION_SCALE) + manualYShift;
+        } else {
+            // ASSEMBLED Y position: Use the saved position which already contains the manual shift
+            targetPos.y = assembledPos.y;
+        }
+
+        partsToAnimate.push({
+            part: mesh,
+            start: mesh.position.clone(),
+            target: targetPos,
+            elapsed: 0
+        });
+    });
+}
+
+document.getElementById('explode-button').addEventListener('click', () => {
+    animateExplosion(true);
 });
 
-
-
-// Add connector pipes (gas inlet/outlet)
-const pipeGeometry = new THREE.CylinderGeometry(0.15, 0.15, currentY, 16);
-const pipeMaterial = new THREE.MeshStandardMaterial({ color: 0xdddd00 });
-const pipe1 = new THREE.Mesh(pipeGeometry, pipeMaterial);
-pipe1.position.set(1.2, currentY / 2, 1.2);
-scene.add(pipe1);
-
-const pipe2 = new THREE.Mesh(pipeGeometry, pipeMaterial);
-pipe2.position.set(-1.2, currentY / 2, -1.2);
-scene.add(pipe2);
-
-let exploded = false;
-const explodeDistance = 0.5;
-
-document.getElementById("expandBtn").addEventListener('click', () => {
-  exploded = !exploded;
+document.getElementById('assemble-button').addEventListener('click', () => {
+    animateExplosion(false);
 });
 
 function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
+    requestAnimationFrame(animate);
 
-  stackObjects.forEach((item, index) => {
-    const idx = (typeof item.layerIndex === 'number') ? item.layerIndex : index;
-    const spacing = (maxLayerHeight || 0.2) + explodeDistance;
-    const targetY = exploded
-      ? item.baseY + idx * spacing
-      : item.baseY;
+    const delta = clock.getDelta();
+    const duration = ANIMATION_DURATION;
 
-    item.object.position.y += (targetY - item.object.position.y) * 0.15;
+    partsToAnimate.forEach(anim => {
+        anim.elapsed += delta;
+        const progress = Math.min(1, anim.elapsed / duration);
 
-    // Show labels only when expanded
-    item.label.visible = exploded;
-    item.label.position.y = item.object.position.y; // sync label position
-  });
+        anim.part.position.lerpVectors(anim.start, anim.target, progress);
+    });
 
-  renderer.render(scene, camera);
-  labelRenderer.render(scene, camera);
+    controls.update();
+    renderer.render(scene, camera);
 }
+
 animate();
-
-// Resize handler
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-
-
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-window.addEventListener('click', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(
-    stackObjects.map(o => o.object),
-    true
-  );
-
-  if (intersects.length > 0) {
-    let clicked = intersects[0].object;
-
-    // Traverse up to find the group with a proper name
-    while (clicked.parent && !stackObjects.find(o => o.object === clicked)) {
-      clicked = clicked.parent;
-    }
-
-    showLayerPopup(clicked.name);
-  }
-});
-
-
-const popup = document.getElementById('layerPopup');
-const popupBody = document.getElementById('popupBody');
-const closePopup = document.getElementById('closePopup');
-
-closePopup.addEventListener('click', () => popup.style.display = 'none');
-
-function showLayerPopup(layerName) {
-  popup.style.display = 'flex';
-
-  let content = '';
-
-  if (layerName === 'Graphite Plate') {
-    content = `
-      <h2>Graphite Plate</h2>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
-      <p>
-        A solid, dark grey or black plate made from compressed graphite.  
-        It looks smooth, slightly shiny, and feels light compared to metal.  
-        It often has carved or molded grooves on one side to guide gases through the cell.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
-      <p>
-        It helps move gases (hydrogen and oxygen/air) across the fuel cell,  
-        collects electrons, and spreads heat evenly.  
-        Think of it as a strong, conductive “backbone” that makes sure everything flows and stays stable.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
-      <p>
-        Graphite powder is mixed with binders, pressed into shape, and then baked at high 
-        temperatures to make it strong and conductive.  
-        Channels or patterns are either machined or molded into the surface.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
-      <p>
-        Graphite plates are popular because they don’t rust, they handle heat well,  
-        and they conduct electricity nicely.  
-        Downsides: they can be fragile and more expensive than stamped metal plates.
-      </p>
-    `;
-  } 
-
-  else if (layerName === 'Current Collector') {
-    content = `
-      <h2>Current Collector</h2>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
-      <p>
-        A thin, rigid plate placed at the outer sides of the fuel cell stack.  
-        It usually appears as a flat metal or carbon-based sheet with smooth surfaces,  
-        sometimes with tabs or contact points for electrical connections.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
-      <p>
-        It gathers the electrons produced inside the cell and delivers them to the 
-        external circuit. Its main purpose is to keep electrical resistance low so 
-        power isn’t wasted as heat.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
-      <p>
-        <strong>Proton-Exchange Membrane Fuel Cells:</strong> Often stainless steel, nickel-coated steel, or graphite plates.  
-        These are typically stamped or machined into shape.<br><br>
-        <strong>Solid Oxide Fuel Cell:</strong> Commonly ferritic steel plates or metal meshes.  
-        Sometimes coated with nickel or gold to resist corrosion and improve conductivity.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
-      <p>
-        A good current collector spreads current evenly, avoids corrosion, and prevents hot spots.  
-        Poor collectors cause big efficiency losses.
-      </p>
-    `;
-  }
-  
-  else if (layerName === 'Catalyst-Coated Membrane') {
-    content = `
-      <h2>Catalyst-Coated Membrane (CCM)</h2>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
-      <p>
-        A very thin, flexible sheet that sits in the center of the fuel cell.  
-        It looks like a soft plastic film, usually slightly opaque or off-white.  
-        Both sides of this film are coated with a dark, powdery-looking layer — that’s the catalyst.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
-      <p>
-        This is where the actual chemical reaction happens.  
-        The membrane lets protons pass through but blocks electrons.  
-        The catalyst on each side helps split hydrogen and combine oxygen.  
-        In short: this layer is the “heart” of the fuel cell, creating electricity.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
-      <p>
-        A proton-conducting membrane (often Nafion) is used as the base.  
-        Platinum or platinum-alloy particles are mixed into ink and sprayed, rolled, or printed  
-        onto both sides of the membrane.  
-        After that, it’s dried and pressed to make sure the catalyst sticks evenly.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
-      <p>
-        The CCM controls efficiency and durability.  
-        More uniform catalyst layers mean better performance, but platinum is expensive,  
-        so manufacturers try to use the least amount while keeping power high.
-      </p>
-    `;
-  }
-
-  else if (layerName === 'Gasket') {
-    content = `
-      <h2>Gasket</h2>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
-      <p>
-        A soft, flexible ring or frame made of rubber, silicone, or other polymer material.  
-        It usually looks black or dark-colored and is shaped to fit around the edges of fuel cell layers.  
-        Sometimes it has a simple flat design or slightly raised edges for sealing.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
-      <p>
-        The gasket’s job is to keep gases (like hydrogen and oxygen) and liquids from leaking out of the fuel cell.  
-        It acts like a seal, making sure everything stays in the right path and pressure is maintained.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
-      <p>
-        Gaskets are molded or cut from rubber, silicone, or other polymer sheets.  
-        They can be made soft or slightly firm depending on how tightly the layers need to be pressed together.  
-        Some are treated to resist heat, chemicals, or compression over time.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
-      <p>
-        A good gasket is essential for safety and efficiency.  
-        If the seal fails, gas can leak, which reduces power and can be dangerous.
-      </p>
-    `;
-  }
-
-  else if (layerName === 'Gas Diffusion Layer') {
-    content = `
-      <h2>Gas Diffusion Layer (GDL)</h2>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
-      <p>
-        A thin, porous sheet usually made of carbon fiber or carbon paper.  
-        It looks dark grey or black, slightly rough, and feels like a very dense, stiff paper or fabric.  
-        Sometimes it has a shiny side coated with a thin layer of Teflon (PTFE) to repel water.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
-      <p>
-        The GDL helps gases (hydrogen and oxygen/air) reach the catalyst layer evenly.  
-        It also allows water produced in the reaction to drain away and conducts electrons from the catalyst to the current collector.  
-        Think of it as a “traffic manager” for gases, water, and electrons.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
-      <p>
-        Carbon fibers or carbon paper are pressed together to form a dense, porous sheet.  
-        Then, a thin PTFE coating may be applied to one side to improve water management.  
-        Some GDLs are treated to have specific porosity or thickness depending on the fuel cell design.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
-      <p>
-        The GDL must balance gas flow, water removal, and electrical conductivity.  
-        Too dense and gases can’t pass; too loose and electrons don’t travel efficiently.  
-        Good GDL design is critical for stable and efficient fuel cell operation.
-      </p>
-    `;
-  }
-
-  else if (layerName === 'Frame / End Plate') {
-    content = `
-      <h2>Frame / End Plate</h2>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Is / How It Looks</h3>
-      <p>
-        A thick, rigid plate made of metal (like stainless steel or aluminum) or composite material.  
-        It looks solid and flat, often with bolts or holes at the edges to hold the fuel cell stack together.  
-        Usually located at the very ends of the stack.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">What It Does</h3>
-      <p>
-        The frame or end plate holds the entire fuel cell stack together, applying uniform pressure across all layers.  
-        It ensures good contact between layers and prevents warping or leaks.  
-        Think of it as the “skeleton” keeping the stack stable and strong.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">How It’s Made</h3>
-      <p>
-        Typically machined or stamped from metal plates.  
-        The surface may be coated or treated to resist corrosion.  
-        Holes or threads are added for bolts to compress the stack evenly.
-      </p>
-
-      <h3 style = "margin-top: 12px; margin-bottom: 5px">Extra Notes</h3>
-      <p>
-        End plates are not directly involved in the chemical reaction, but without them, the stack wouldn’t stay together.  
-        Proper pressure from end plates also improves electrical contact and overall efficiency.
-      </p>
-    `;
-  }
-  
-  else {
-    content = `<h2>${layerName}</h2><p>Information coming soon.</p>`;
-  }
-
-  popupBody.innerHTML = content;
-}
-
