@@ -35,13 +35,13 @@ const UPMOST_SUP_REVISIONED_Y_SHIFT = 0.22;
 // Layer order: 1 (Bottom) to 8 (Top). Offsets scaled to match SCALE_FACTOR.
 const COMPONENT_FILES = [
     { name: 'stack_holder', path: 'stack_holder_prt.glb', offset: -4.0, manualYShift: STACK_HOLDER_Y_SHIFT },
-    { name: 'collector_bottom', path: 'collector_layer_prt.glb', offset: -3.0, manualYShift: COLLECTOR_BOTTOM_Y_SHIFT },
+    { name: 'current_collector', path: 'collector_layer_prt.glb', offset: -3.0, manualYShift: COLLECTOR_BOTTOM_Y_SHIFT },
     { name: 'bipolar_layer', path: 'bipolar_layer_prt.glb', offset: -2.0, manualYShift: BIPOLAR_LAYER_Y_SHIFT },
-    { name: 'gdl_bottom', path: 'layer_bot_gdl_prt.glb', offset: -1.0, manualYShift: GDL_BOTTOM_Y_SHIFT },
-    { name: 'ccm_layer', path: 'ccm_layer_prt.glb', offset: 0.0, manualYShift: CCM_LAYER_Y_SHIFT },
-    { name: 'gdl_top', path: 'layer_testing_prt.glb', offset: 1.0, manualYShift: GDL_TOP_Y_SHIFT },
-    { name: 'collector_top', path: 'collector_top.glb', offset: 2.0, manualYShift: COLLECTOR_TOP_Y_SHIFT },
-    { name: 'upmost_sup_revisioned', path: 'upmost_sup_revisioned_prt.glb', offset: 3.0, manualYShift: UPMOST_SUP_REVISIONED_Y_SHIFT },
+    { name: 'gas_diffusion_layer', path: 'layer_bot_gdl_prt.glb', offset: -1.0, manualYShift: GDL_BOTTOM_Y_SHIFT },
+    { name: 'catalyst_coated_membrane', path: 'ccm_layer_prt.glb', offset: 0.0, manualYShift: CCM_LAYER_Y_SHIFT },
+    { name: 'gas_diffusion_layer', path: 'layer_testing_prt.glb', offset: 1.0, manualYShift: GDL_TOP_Y_SHIFT },
+    { name: 'current_collector', path: 'collector_top.glb', offset: 2.0, manualYShift: COLLECTOR_TOP_Y_SHIFT },
+    { name: 'upmost_support', path: 'upmost_sup_revisioned_prt.glb', offset: 3.0, manualYShift: UPMOST_SUP_REVISIONED_Y_SHIFT },
 ];
 
 // --- Core Three.js Setup ---
@@ -140,6 +140,44 @@ function createEdgeOutline(mesh) {
 }
 
 
+function createLabelSprite(text) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024; 
+    canvas.height = 256; 
+
+    const ctx = canvas.getContext('2d');
+
+    ctx.font = "70px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "white";
+
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+
+    const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+    });
+
+    const sprite = new THREE.Sprite(material);
+
+    // BIG labels so they're visible relative to 0.005 scale model
+    sprite.scale.set(1.5, 0.4, 1);
+
+    return sprite;
+}
+
+
+function humanizeFileName(fileName) {
+  return fileName
+    .replace(/\.[^/.]+$/, "")    // remove extension
+    .replace(/_/g, " ")          // replace underscores
+    .replace(/\b\w/g, c => c.toUpperCase()); // capitalize words
+}
+
+
 function loadComponent(index) {
     if (index >= COMPONENT_FILES.length) {
         onAllComponentsLoaded();
@@ -208,6 +246,16 @@ function loadComponent(index) {
                 componentGroup.userData.explosionOffset = scaledOffset;
                 componentGroup.userData.manualYShift = manualYShift;
 
+                // --- Create and attach label ---
+                const cleanName = humanizeFileName(component.name);
+                const label = createLabelSprite(cleanName);
+
+                label.position.set(-0.5, 0.1, 0); 
+                label.visible = false; // hidden until exploded
+
+                componentGroup.add(label);
+                componentGroup.userData.label = label;
+
                 scene.add(componentGroup);
                 componentMeshes.push(componentGroup);
 
@@ -241,25 +289,28 @@ function animateExplosion(explode) {
     if (componentMeshes.length === 0) return;
     partsToAnimate.length = 0;
 
-    const assemblyBaseY = 0;
-
     componentMeshes.forEach(mesh => {
         const assembledPos = originalPositions.get(mesh);
-        if (!assembledPos) return;
-
         const offset = mesh.userData.explosionOffset || 0;
         const manualYShift = mesh.userData.manualYShift || 0;
-        const targetPos = new THREE.Vector3();
 
+        const targetPos = new THREE.Vector3();
         targetPos.x = assembledPos.x;
         targetPos.z = assembledPos.z;
 
         if (explode) {
-            // Exploded Y position: (Layer Offset * Explosion Scale) + Manual Y Shift
-            targetPos.y = assemblyBaseY + (offset * EXPLOSION_SCALE) + manualYShift;
+            targetPos.y = (offset * EXPLOSION_SCALE) + manualYShift;
+
+            if (mesh.userData.label) {
+                mesh.userData.label.visible = true;
+            }
+
         } else {
-            // ASSEMBLED Y position: Use the saved position which already contains the manual shift
             targetPos.y = assembledPos.y;
+
+            if (mesh.userData.label) {
+                mesh.userData.label.visible = false;
+            }
         }
 
         partsToAnimate.push({
@@ -293,7 +344,16 @@ function animate() {
     });
 
     controls.update();
+    
+    componentMeshes.forEach(mesh => {
+        const label = mesh.userData.label;
+        if (label && label.visible) {
+            label.lookAt(camera.position);
+        }
+    });
+
     renderer.render(scene, camera);
+
 }
 
 animate();
