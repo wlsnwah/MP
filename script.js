@@ -32,6 +32,28 @@ const UPMOST_SUP_REVISIONED_Y_SHIFT = 0.22;
 // ----------------------------------------------
 
 
+// --- Global raycaster + popup ---
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('pointerdown', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(componentMeshes, true); // only check your components
+
+    if (intersects.length > 0) {
+        const clickedObject = intersects[0].object;
+
+        if (clickedObject.isMesh) {
+            console.log("Layer clicked:", clickedObject.name);
+            openPopup(clickedObject.name); // <-- your existing popup function
+        }
+    }
+});
+
+
 // Layer order: 1 (Bottom) to 8 (Top). Offsets scaled to match SCALE_FACTOR.
 const COMPONENT_FILES = [
     { name: 'stack_holder', path: 'stack_holder_prt.glb', offset: -4.0, manualYShift: STACK_HOLDER_Y_SHIFT },
@@ -250,7 +272,7 @@ function loadComponent(index) {
                 const cleanName = humanizeFileName(component.name);
                 const label = createLabelSprite(cleanName);
 
-                label.position.set(-0.5, 0.1, 0); 
+                label.position.set(-0.5, 0.05, 0); 
                 label.visible = false; // hidden until exploded
 
                 componentGroup.add(label);
@@ -276,8 +298,88 @@ function loadComponent(index) {
     );
 }
 
+function openPopup(name, descriptionHTML = "", extraHTML = "") {
+    const popup = document.getElementById('component-popup');
+    const title = document.getElementById('popup-title');
+    const desc = document.getElementById('popup-description');
+    const extra = document.getElementById('popup-extra');
+
+    title.textContent = humanizeFileName(name);
+
+    // Flexible description (HTML allowed)
+    desc.innerHTML = descriptionHTML;
+
+    // Extra content (videos, images, etc.)
+    extra.innerHTML = extraHTML;
+
+    popup.style.display = 'flex';
+}
+
+// Close button
+document.getElementById('popup-close').addEventListener('click', () => {
+    document.getElementById('component-popup').style.display = 'none';
+    document.getElementById('popup-description').innerHTML = "";
+    document.getElementById('popup-extra').innerHTML = "";
+});
+
+
+
+// --- Add raycaster listener after all components are loaded ---
+function setupRaycaster() {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    window.addEventListener('pointerdown', (event) => {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(componentMeshes, true);
+
+        if (intersects.length > 0) {
+            const clickedObject = intersects.find(obj => obj.object.isMesh).object;
+
+            if (!clickedObject) return;
+
+            console.log("Layer clicked:", clickedObject.name);
+
+            let description = "";
+            let extra = "";
+
+            switch(clickedObject.name) {
+                case "stack_holder":
+                    description = `<p>This layer is critical...</p>`;
+                    // extra = `<video width="100%" controls><source src="bipolar_video.mp4" type="video/mp4"></video>`;
+                    break;
+                case "current_collector":
+                    description = `<p>The stack holder holds all the layers together.</p>`;
+                    break;
+                case "bipolar_layer":
+                    description = `<p>The stack holder holds all the layers together.</p>`;
+                    break;
+                case "gas_diffusion_layer":
+                    description = `<p>The stack holder holds all the layers together.</p>`;
+                    break;
+                case "catalyst_coated_membrane":
+                    description = `<p>The stack holder holds all the layers together.</p>`;
+                    break;
+                case "catalyst_coated_membrane":
+                    description = `<p>The stack holder holds all the layers together.</p>`;
+                    break;
+                default:
+                    description = `<p>No extra info available.</p>`;
+            }
+
+            openPopup(clickedObject.name, description, extra);
+        }
+    });
+}
+
+
+// --- Call this when all components are loaded ---
 function onAllComponentsLoaded() {
     console.log(`All ${componentMeshes.length} components loaded.`);
+    setupRaycaster(); // <--- Setup raycaster AFTER loading
 }
 
 loadComponent(0);
