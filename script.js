@@ -61,7 +61,7 @@ const COMPONENT_FILES = [
     { name: 'bipolar_layer', path: 'bipolar_layer_prt.glb', offset: -2.0, manualYShift: BIPOLAR_LAYER_Y_SHIFT },
     { name: 'gas_diffusion_layer', path: 'layer_bot_gdl_prt.glb', offset: -1.0, manualYShift: GDL_BOTTOM_Y_SHIFT },
     { name: 'catalyst_coated_membrane', path: 'ccm_layer_prt.glb', offset: 0.0, manualYShift: CCM_LAYER_Y_SHIFT },
-    { name: 'gas_diffusion_layer', path: 'layer_testing_prt.glb', offset: 1.0, manualYShift: GDL_TOP_Y_SHIFT },
+    { name: 'gas_distribution_layer', path: 'layer_testing_prt.glb', offset: 1.0, manualYShift: GDL_TOP_Y_SHIFT },
     { name: 'current_collector', path: 'collector_top.glb', offset: 2.0, manualYShift: COLLECTOR_TOP_Y_SHIFT },
     { name: 'upmost_support', path: 'upmost_sup_revisioned_prt.glb', offset: 3.0, manualYShift: UPMOST_SUP_REVISIONED_Y_SHIFT },
 ];
@@ -242,7 +242,7 @@ function loadComponent(index) {
                 } else {
                     componentMesh.rotation.x = -Math.PI / 2;
 
-                    if (component.name === 'gdl_top') {
+                    if (component.name === 'gas_distribution_layer') {
                         componentMesh.rotation.y = Math.PI;
 
                         componentMesh.position.x = GDL_TOP_X_SHIFT;
@@ -348,23 +348,274 @@ function setupRaycaster() {
 
             switch(clickedObject.name) {
                 case "stack_holder":
-                    description = `<p>This layer is critical...</p>`;
+                    description = `
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        What it is
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        The stack holder is the outer frame or casing that surrounds the entire fuel cell stack.
+                        It keeps all the layers aligned, protected, and held tightly together.
+                        Think of it as the body or shell that keeps the stack stable.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        Functionality
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Its main job is to apply even pressure across all the layers so they stay in close contact.
+                        This tight contact is important for gas sealing, electrical connection, and overall performance.
+                        The stack holder also protects the stack from outside forces, vibration, and movement.
+                        It helps support the plates, membranes, seals, and other parts inside.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it helps in the fuel cell stack
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Without the stack holder, the layers could shift, leak, or lose contact.
+                        This would reduce performance or cause the fuel and air to mix in the wrong places.
+                        By holding everything firmly, the stack holder makes sure the internal reactions happen safely and evenly.
+                        It also helps extend the life of the stack by preventing damage and keeping the inside structure compressed correctly.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it is made
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
+                        Stack holders are usually made from strong materials such as stainless steel, aluminum, or reinforced plastic.
+                        The parts are shaped using machining, molding, or casting depending on the design.
+                        </p>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        Some stack holders use bolts, plates, or clamps to apply pressure.
+                        Others use a molded housing that fits the shape of the stack.
+                        The final assembly must be strong, precise, and able to handle heat, moisture, and vibration during operation.
+                        </p>
+                    `;
                     // extra = `<video width="100%" controls><source src="bipolar_video.mp4" type="video/mp4"></video>`;
                     break;
                 case "current_collector":
-                    description = `<p>The stack holder holds all the layers together.</p>`;
+                    description = 
+                    `
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        What it is
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        The current collector is a thin plate or mesh inside a fuel cell stack that helps move electricity out of the cell.
+                        It sits on the outside of the other layers and touches the part that produces the electrical energy.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        Functionality
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Its job is to pick up the electrons created during the fuel cell reaction and guide them to the outside circuit.
+                        It also spreads the electrical flow evenly so the cell works smoothly.
+                        In some designs, it also helps press the inner layers together so everything stays in good contact.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it helps in the fuel cell stack
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Without the current collector, the fuel cell cannot deliver power to anything outside the stack.
+                        It acts like a bridge between the chemical reaction inside and the electrical output outside.
+                        It also reduces energy loss by making sure the electricity travels through a low resistance path,
+                        improving the overall performance of the stack.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it is made
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
+                        Current collectors are usually made from metals that conduct electricity very well.
+                        Common choices are thin stainless steel plates, nickel plates, or copper plates.
+                        Some designs use metal meshes or metal foams.
+                        </p>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        They may also be given a coating to prevent rust, improve contact, or reduce resistance.
+                        These coatings can be carbon based or special thin metal layers.
+                        The plates are shaped by stamping, cutting, or pressing so they fit perfectly into the stack.
+                        </p>
+                    `;
                     break;
                 case "bipolar_layer":
-                    description = `<p>The stack holder holds all the layers together.</p>`;
+                    description = `
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        What it is
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        The bipolar plate is a solid plate that sits between two fuel cells inside the stack.
+                        One side of the plate faces one cell, and the other side faces the next cell.
+                        It separates the cells while also helping them work together.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        Functionality
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        The plate has small channels carved into it.
+                        These channels guide the fuel and air across the cell surface.
+                        The plate also carries electricity from one cell to the next, helping them connect in a series to build higher voltage.
+                        It also helps remove heat and water from the cell, keeping everything balanced.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it helps in the fuel cell stack
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Without the bipolar plate, the stack would not be able to move gases properly or link the cells together electrically.
+                        The plate makes sure the fuel and air spread evenly so the reaction happens smoothly.
+                        It also joins each cell to the next one, so the total power of the whole stack can be delivered safely.
+                        It supports temperature control and water control, which keeps the stack stable over long use.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it is made
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
+                        Bipolar plates are usually made from graphite, coated metal, or special polymers mixed with carbon.
+                        The channels are made by machining, stamping, molding, or pressing.
+                        </p>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        When metal is used, a thin protective coating is added to stop rust and reduce electrical resistance.
+                        The final shape must be precise so the gases flow correctly and the plate fits tightly in the stack.
+                        </p>
+                    `;
                     break;
+                case "gas_distribution_layer":
+                    description = `
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        What it is
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        The gas distribution layer is a porous sheet that sits between the bipolar plate and the inner layers of the fuel cell.
+                        It looks a bit like a stiff sponge or felt made from carbon.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        Functionality
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Its job is to spread the fuel and air evenly across the entire reaction area.
+                        Because it is porous, gases can move through it in many directions.
+                        It also helps move heat and water out of the reaction zone.
+                        Another small but important role is helping the electrical current travel smoothly from the inner layers to the plates.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it helps in the fuel cell stack
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Without the gas distribution layer, gases would only travel through the main channels of the bipolar plate and would not reach all parts of the cell.
+                        This would create uneven reactions and lower performance.
+                        The layer makes sure every part of the cell gets the right amount of fuel and air.
+                        It also supports water control by letting extra water escape, and it helps keep the temperature steady.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it is made
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
+                        The layer is usually made from carbon paper or carbon cloth.
+                        Carbon paper is made by pressing carbon fibers into a thin sheet.
+                        Carbon cloth is woven from carbon yarns.
+                        </p>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        Both types are treated with a water resistant coating to help manage moisture.
+                        Sometimes a thin layer of micro porous material is added on top to improve gas flow and water control.
+                        </p>
+                    `;
+                    break;
+
                 case "gas_diffusion_layer":
-                    description = `<p>The stack holder holds all the layers together.</p>`;
+                    description = `
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        What it is
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        The gas distribution layer is a porous sheet that sits between the bipolar plate and the inner layers of the fuel cell.
+                        It looks a bit like a stiff sponge or felt made from carbon.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        Functionality
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Its job is to spread the fuel and air evenly across the entire reaction area.
+                        Because it is porous, gases can move through it in many directions.
+                        It also helps move heat and water out of the reaction zone.
+                        Another small but important role is helping the electrical current travel smoothly from the inner layers to the plates.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it helps in the fuel cell stack
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Without the gas distribution layer, gases would only travel through the main channels of the bipolar plate and would not reach all parts of the cell.
+                        This would create uneven reactions and lower performance.
+                        The layer makes sure every part of the cell gets the right amount of fuel and air.
+                        It also supports water control by letting extra water escape, and it helps keep the temperature steady.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it is made
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
+                        The layer is usually made from carbon paper or carbon cloth.
+                        Carbon paper is made by pressing carbon fibers into a thin sheet.
+                        Carbon cloth is woven from carbon yarns.
+                        </p>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        Both types are treated with a water resistant coating to help manage moisture.
+                        Sometimes a thin layer of micro porous material is added on top to improve gas flow and water control.
+                        </p>
+                    `;
                     break;
+                
                 case "catalyst_coated_membrane":
-                    description = `<p>The stack holder holds all the layers together.</p>`;
-                    break;
-                case "catalyst_coated_membrane":
-                    description = `<p>The stack holder holds all the layers together.</p>`;
+                    description = `
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        What it is
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        The catalyst coated membrane is the heart of the fuel cell.
+                        It is a thin plastic like sheet that can move charged particles, and both sides of this sheet are covered with a special powder called the catalyst.
+                        This catalyst helps the fuel cell reaction happen faster.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        Functionality
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        The membrane lets certain charged particles pass through it while blocking gases.
+                        The catalyst on each side helps break the fuel and air into smaller parts so they can react.
+                        On one side, the fuel splits into electrons and charged particles.
+                        The charged particles move through the membrane, while the electrons take an outside path to create electricity.
+                        On the other side, the charged particles meet the air and complete the reaction to form water.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it helps in the fuel cell stack
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        This layer is where almost all of the energy conversion happens.
+                        Without it, the fuel cell cannot create electricity.
+                        It holds the two main chemical reactions and keeps the fuel and air separated so they do not mix directly.
+                        It also allows the charged particles to travel safely while forcing the electrons to flow through the circuit that produces useful power.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it is made
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
+                        The membrane is usually made from a special plastic material that can carry charged particles.
+                        This membrane is cleaned, prepared, and then coated with a very thin layer of catalyst powder, usually a precious metal mixed with carbon.
+                        </p>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        The coating can be applied by spraying, printing, or hot pressing.
+                        After coating, the sheet is dried, pressed, and trimmed so it fits perfectly inside the fuel cell.
+                        </p>
+                    `;
                     break;
                 default:
                     description = `<p>No extra info available.</p>`;
