@@ -21,16 +21,27 @@ const GDL_TOP_Z_SHIFT = 0.0; // Positive moves Backward, Negative moves Forward
 // ------------------------------------------
 
 // --- Manual Y-Shift Constants for all parts ---
-const STACK_HOLDER_Y_SHIFT = 0.3;
-const COLLECTOR_BOTTOM_Y_SHIFT = 0.3;
-const BIPOLAR_LAYER_Y_SHIFT = 0.26;
-const GDL_BOTTOM_Y_SHIFT = .26;
-const CCM_LAYER_Y_SHIFT = 0.23;
-const GDL_TOP_Y_SHIFT = .2;
-const COLLECTOR_TOP_Y_SHIFT = .21;
-const UPMOST_SUP_REVISIONED_Y_SHIFT = 0.22;
+const STACK_HOLDER_Y_SHIFT = 0.16;
+const COLLECTOR_BOTTOM_Y_SHIFT = 0.12;
+const BIPOLAR_BOTTOM_LAYER_Y_SHIFT = 0.055;
+const GDL_BOTTOM_Y_SHIFT = 0.04;
+const CCM_LAYER_Y_SHIFT = 0;
+const GDL_TOP_Y_SHIFT = -0.065;
+const BIPOLAR_TOP_LAYER_Y_SHIFT = -0.08
+const COLLECTOR_TOP_Y_SHIFT = -0.095;
+const UPMOST_SUP_REVISIONED_Y_SHIFT = -0.085;
 // ----------------------------------------------
 
+
+// --- Core Three.js Setup ---
+const container = document.getElementById('viewer-container');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(
+    50,
+    container.clientWidth / container.clientHeight,
+    0.01,
+    100
+);
 
 // --- Global raycaster + popup ---
 const raycaster = new THREE.Raycaster();
@@ -56,25 +67,25 @@ window.addEventListener('pointerdown', (event) => {
 
 // Layer order: 1 (Bottom) to 8 (Top). Offsets scaled to match SCALE_FACTOR.
 const COMPONENT_FILES = [
-    { name: 'stack_holder', path: 'stack_holder_prt.glb', offset: -4.0, manualYShift: STACK_HOLDER_Y_SHIFT },
-    { name: 'current_collector', path: 'collector_layer_prt.glb', offset: -3.0, manualYShift: COLLECTOR_BOTTOM_Y_SHIFT },
-    { name: 'bipolar_layer', path: 'bipolar_layer_prt.glb', offset: -2.0, manualYShift: BIPOLAR_LAYER_Y_SHIFT },
-    { name: 'gas_diffusion_layer', path: 'layer_bot_gdl_prt.glb', offset: -1.0, manualYShift: GDL_BOTTOM_Y_SHIFT },
-    { name: 'catalyst_coated_membrane', path: 'ccm_layer_prt.glb', offset: 0.0, manualYShift: CCM_LAYER_Y_SHIFT },
-    { name: 'gas_distribution_layer', path: 'layer_testing_prt.glb', offset: 1.0, manualYShift: GDL_TOP_Y_SHIFT },
+    { name: 'end_plate', path: 'stack_holder_prt.glb', offset: -5.0, manualYShift: STACK_HOLDER_Y_SHIFT },
+
+    { name: 'current_collector', path: 'collector_layer_prt.glb', offset: -4.0, manualYShift: COLLECTOR_BOTTOM_Y_SHIFT },
+
+    { name: 'flow_field_channel_plate', path: 'bipolar_layer_prt.glb', offset: -3.0, manualYShift: BIPOLAR_BOTTOM_LAYER_Y_SHIFT },
+
+    { name: 'gas_diffusion_layer', path: 'layer_bot_gdl_prt.glb', offset: -2.0, manualYShift: GDL_BOTTOM_Y_SHIFT },
+
+    { name: 'catalyst_coated_membrane', path: 'ccm_layer_prt.glb', offset: -1.0, manualYShift: CCM_LAYER_Y_SHIFT },
+
+    { name: 'gas_diffusion_layer', path: 'layer_testing_prt.glb', offset: 0.0, manualYShift: GDL_TOP_Y_SHIFT },
+
+    { name: 'flow_field_channel_plate', path: 'bipolar_layer_prt.glb', offset: 1.0, manualYShift: BIPOLAR_TOP_LAYER_Y_SHIFT },
+
     { name: 'current_collector', path: 'collector_top.glb', offset: 2.0, manualYShift: COLLECTOR_TOP_Y_SHIFT },
-    { name: 'upmost_support', path: 'upmost_sup_revisioned_prt.glb', offset: 3.0, manualYShift: UPMOST_SUP_REVISIONED_Y_SHIFT },
+
+    { name: 'end_plate', path: 'upmost_sup_revisioned_prt.glb', offset: 3.0, manualYShift: UPMOST_SUP_REVISIONED_Y_SHIFT },
 ];
 
-// --- Core Three.js Setup ---
-const container = document.getElementById('viewer-container');
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-    50,
-    container.clientWidth / container.clientHeight,
-    0.01,
-    100
-);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(container.clientWidth, container.clientHeight);
@@ -233,7 +244,7 @@ function loadComponent(index) {
                 applyShadingAndColor(componentMesh);
 
                 // --- Rotation & X/Z Hotfix Logic (on the mesh, inside the group) ---
-                if (component.name === 'bipolar_layer') {
+                if (component.name === 'flow_field_channel_plate') {
                     componentMesh.rotation.set(0, 0, 0);
 
                     componentMesh.position.x = BIPOLAR_X_SHIFT;
@@ -242,9 +253,12 @@ function loadComponent(index) {
                 } else {
                     componentMesh.rotation.x = -Math.PI / 2;
 
-                    if (component.name === 'gas_distribution_layer') {
-                        componentMesh.rotation.y = Math.PI;
-
+                    // Flip ONLY the TOP gas diffusion layer
+                    if (
+                        component.name === 'gas_diffusion_layer' &&
+                        component.offset === 0.0
+                    ) {
+                        componentMesh.rotation.y = Math.PI; // flip
                         componentMesh.position.x = GDL_TOP_X_SHIFT;
                         componentMesh.position.z = GDL_TOP_Z_SHIFT;
                     }
@@ -438,7 +452,7 @@ function setupRaycaster() {
                         </p>
                     `;
                     break;
-                case "bipolar_layer":
+                case "flow_field_channel_plate":
                     description = `
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         What it is
@@ -617,6 +631,28 @@ function setupRaycaster() {
                         </p>
                     `;
                     break;
+                case "end_plate":
+                    description = `
+                        <h2 style="font-size: 1.25rem;">What it is</h2>
+                        <p>
+                        The end plate sits at the very top and bottom of the fuel cell stack.
+                        It provides structural support and keeps all internal layers compressed.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem;">Functionality</h2>
+                        <p>
+                        End plates distribute clamping pressure evenly across the stack,
+                        prevent leaks, and protect the internal layers from bending or misalignment.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem;">How it helps</h2>
+                        <p>
+                        Without end plates, the stack would lose compression, electrical contact,
+                        and sealing, leading to poor performance or failure.
+                        </p>
+                    `;
+                    break;
+
                 default:
                     description = `<p>No extra info available.</p>`;
             }
