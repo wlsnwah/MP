@@ -48,20 +48,20 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 window.addEventListener('pointerdown', (event) => {
+    if (isPopupOpen) return; // 🚫 do NOTHING if popup is open
+
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(componentMeshes, true); // only check your components
+    const intersects = raycaster.intersectObjects(componentMeshes, true);
 
-    if (intersects.length > 0) {
-        const clickedObject = intersects[0].object;
+    if (!intersects.length) return;
 
-        if (clickedObject.isMesh) {
-            console.log("Layer clicked:", clickedObject.name);
-            openPopup(clickedObject.name); // <-- your existing popup function
-        }
-    }
+    const hit = intersects.find(i => i.object.isMesh);
+    if (!hit) return;
+
+    openPopup(hit.object.name);
 });
 
 
@@ -86,6 +86,8 @@ const COMPONENT_FILES = [
     { name: 'end_plate', path: 'upmost_sup_revisioned_prt.glb', offset: 3.0, manualYShift: UPMOST_SUP_REVISIONED_Y_SHIFT },
 ];
 
+
+let isPopupOpen = false;
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(container.clientWidth, container.clientHeight);
@@ -121,6 +123,11 @@ const componentMeshes = [];
 const originalPositions = new Map();
 const clock = new THREE.Clock();
 
+
+document.getElementById('popup-overlay')
+  .addEventListener('pointerdown', e => {
+    e.stopPropagation();
+  });
 
 /**
  * Applies a white MeshStandardMaterial (PBR) and ensures geometry has vertex normals.
@@ -327,6 +334,7 @@ function openPopup(name, descriptionHTML = "", extraHTML = "") {
     extra.innerHTML = extraHTML;
 
     popup.style.display = 'flex';
+    isPopupOpen = true;
 }
 
 // Close button
@@ -334,6 +342,7 @@ document.getElementById('popup-close').addEventListener('click', () => {
     document.getElementById('component-popup').style.display = 'none';
     document.getElementById('popup-description').innerHTML = "";
     document.getElementById('popup-extra').innerHTML = "";
+    isPopupOpen = false;
 });
 
 
