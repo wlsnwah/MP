@@ -29,7 +29,7 @@ const CCM_LAYER_Y_SHIFT = 0;
 const GDL_TOP_Y_SHIFT = -0.04;
 const BIPOLAR_TOP_LAYER_Y_SHIFT = -0.080;
 const COLLECTOR_TOP_Y_SHIFT = -0.12;
-const UPMOST_SUP_REVISIONED_Y_SHIFT = -0.11;
+const UPMOST_SUP_REVISIONED_Y_SHIFT = -0.185;
 // ----------------------------------------------
 
 
@@ -135,11 +135,10 @@ document.getElementById('popup-overlay')
  */
 
 const COMPONENT_COLORS = {
-    end_plate: 0x6b7280,                 // dark gray
-    current_collector: 0xf59e0b,         // amber
-    flow_field_channel_plate: 0x374151,  // graphite gray
-    gas_diffusion_layer: 0x9ca3af,       // light gray
-    catalyst_coated_membrane: 0x3b82f6,  // blue
+    end_plate: 0x676767,
+    current_collector: 0xf59e0b,
+    gas_diffusion_layer: 0x232323, 
+    catalyst_coated_membrane: 0x3b82f6,
 };
 
 function applyShadingAndColor(mesh, componentName) {
@@ -306,6 +305,15 @@ function loadComponent(index) {
                     componentMesh.position.z = 0.0;
                 }
 
+                if (
+                    component.name === 'end_plate' &&
+                    component.offset === 3.0
+                ) {
+                    componentGroup.rotation.x = Math.PI;
+                    componentMesh.position.z = -0.4;
+                }
+
+
                 // Apply scale to the mesh
                 componentMesh.scale.set(SCALE_FACTOR, SCALE_FACTOR, SCALE_FACTOR);
 
@@ -333,6 +341,11 @@ function loadComponent(index) {
 
                 componentGroup.add(label);
                 componentGroup.userData.label = label;
+
+                if (componentGroup.rotation.x === Math.PI) {
+                    label.rotation.x = Math.PI;       // flips it back upright
+                    label.position.y *= -1;           // move it back "above" the mesh
+                }
 
                 scene.add(componentGroup);
                 componentMeshes.push(componentGroup);
