@@ -26,8 +26,8 @@ const COLLECTOR_BOTTOM_Y_SHIFT = 0.12;
 const BIPOLAR_BOTTOM_LAYER_Y_SHIFT = 0.055;
 const GDL_BOTTOM_Y_SHIFT = 0.04;
 const CCM_LAYER_Y_SHIFT = 0;
-const GDL_TOP_Y_SHIFT = -0.065;
-const BIPOLAR_TOP_LAYER_Y_SHIFT = -0.105
+const GDL_TOP_Y_SHIFT = -0.04;
+const BIPOLAR_TOP_LAYER_Y_SHIFT = -0.080;
 const COLLECTOR_TOP_Y_SHIFT = -0.12;
 const UPMOST_SUP_REVISIONED_Y_SHIFT = -0.11;
 // ----------------------------------------------
@@ -281,25 +281,29 @@ function loadComponent(index) {
 
                 applyShadingAndColor(componentMesh, component.name);
 
-                // --- Rotation & X/Z Hotfix Logic (on the mesh, inside the group) ---
-                if (component.name === 'flow_field_channel_plate') {
-                    componentMesh.rotation.set(0, 0, 0);
+                // --- Rotation & X/Z Hotfix Logic ---
 
+                // Base orientation
+                componentMesh.rotation.set(0, 0, 0);
+
+                // Default orientation for non-bipolar parts
+                if (component.name !== 'flow_field_channel_plate') {
+                    componentMesh.rotation.x = -Math.PI / 2;
+                }
+
+                // Bipolar plate X/Z hotfix
+                if (component.name === 'flow_field_channel_plate') {
                     componentMesh.position.x = BIPOLAR_X_SHIFT;
                     componentMesh.position.z = BIPOLAR_Z_SHIFT;
+                }
 
-                } else {
-                    componentMesh.rotation.x = -Math.PI / 2;
-
-                    // Flip ONLY the TOP gas diffusion layer
-                    if (
-                        component.name === 'gas_diffusion_layer' &&
-                        component.offset === 0.0
-                    ) {
-                        componentMesh.rotation.y = Math.PI; // flip
-                        componentMesh.position.x = GDL_TOP_X_SHIFT;
-                        componentMesh.position.z = GDL_TOP_Z_SHIFT;
-                    }
+                // ✅ Flip ONLY the TOP bipolar plate (offset === 1)
+                if (
+                    component.name === 'flow_field_channel_plate' &&
+                    component.offset === 1.0
+                ) {
+                    componentGroup.rotation.x = Math.PI;
+                    componentMesh.position.z = 0.0;
                 }
 
                 // Apply scale to the mesh
