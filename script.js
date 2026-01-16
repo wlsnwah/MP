@@ -27,9 +27,9 @@ const BIPOLAR_BOTTOM_LAYER_Y_SHIFT = 0.055;
 const GDL_BOTTOM_Y_SHIFT = 0.04;
 const CCM_LAYER_Y_SHIFT = 0;
 const GDL_TOP_Y_SHIFT = -0.065;
-const BIPOLAR_TOP_LAYER_Y_SHIFT = -0.08
-const COLLECTOR_TOP_Y_SHIFT = -0.095;
-const UPMOST_SUP_REVISIONED_Y_SHIFT = -0.085;
+const BIPOLAR_TOP_LAYER_Y_SHIFT = -0.105
+const COLLECTOR_TOP_Y_SHIFT = -0.12;
+const UPMOST_SUP_REVISIONED_Y_SHIFT = -0.11;
 // ----------------------------------------------
 
 
@@ -77,7 +77,7 @@ const COMPONENT_FILES = [
 
     { name: 'catalyst_coated_membrane', path: 'ccm_layer_prt.glb', offset: -1.0, manualYShift: CCM_LAYER_Y_SHIFT },
 
-    { name: 'gas_diffusion_layer', path: 'layer_testing_prt.glb', offset: 0.0, manualYShift: GDL_TOP_Y_SHIFT },
+    { name: 'gas_diffusion_layer', path: 'layer_bot_gdl_prt.glb', offset: 0.0, manualYShift: GDL_TOP_Y_SHIFT },
 
     { name: 'flow_field_channel_plate', path: 'bipolar_layer_prt.glb', offset: 1.0, manualYShift: BIPOLAR_TOP_LAYER_Y_SHIFT },
 
@@ -133,21 +133,52 @@ document.getElementById('popup-overlay')
  * Applies a white MeshStandardMaterial (PBR) and ensures geometry has vertex normals.
  * @param {THREE.Mesh | THREE.Group} mesh The component mesh.
  */
-function applyShadingAndColor(mesh) {
-    const WHITE_COLOR = 0xFFFFFF;
-    const newMaterial = new THREE.MeshStandardMaterial({
-        color: WHITE_COLOR,
-        metalness: 0.1,
-        roughness: 0.5,
+
+const COMPONENT_COLORS = {
+    end_plate: 0x6b7280,                 // dark gray
+    current_collector: 0xf59e0b,         // amber
+    flow_field_channel_plate: 0x374151,  // graphite gray
+    gas_diffusion_layer: 0x9ca3af,       // light gray
+    catalyst_coated_membrane: 0x3b82f6,  // blue
+};
+
+function applyShadingAndColor(mesh, componentName) {
+    const color = COMPONENT_COLORS[componentName] || 0xffffff;
+
+    const material = new THREE.MeshStandardMaterial({
+        color,
+        metalness: 0.15,
+        roughness: 0.45,
     });
 
     mesh.traverse(child => {
         if (child.isMesh) {
-            child.material = newMaterial;
+            child.material = material.clone(); // 🔥 important
             child.geometry.computeVertexNormals();
+
+            // Save original color for later restore
+            child.userData.originalColor = material.color.clone();
         }
     });
 }
+
+function highlightComponent(group) {
+    group.traverse(child => {
+        if (child.isMesh) {
+            child.material.color.set(0xef4444); // red highlight
+        }
+    });
+}
+
+function resetComponentColor(group) {
+    group.traverse(child => {
+        if (child.isMesh && child.userData.originalColor) {
+            child.material.color.copy(child.userData.originalColor);
+        }
+    });
+}
+
+
 
 /**
  * Creates an outline using EdgesGeometry, which is better for complex meshes and holes.
@@ -248,7 +279,7 @@ function loadComponent(index) {
 
                 componentMesh.position.set(0, 0, 0);
 
-                applyShadingAndColor(componentMesh);
+                applyShadingAndColor(componentMesh, component.name);
 
                 // --- Rotation & X/Z Hotfix Logic (on the mesh, inside the group) ---
                 if (component.name === 'flow_field_channel_plate') {
@@ -665,6 +696,12 @@ function setupRaycaster() {
                 default:
                     description = `<p>No extra info available.</p>`;
             }
+
+            // Reset all first
+            componentMeshes.forEach(resetComponentColor);
+
+            // Highlight selected
+            highlightComponent(intersects[0].object.parent);
 
             openPopup(clickedObject.name, description, extra);
         }
