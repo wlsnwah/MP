@@ -1,26 +1,35 @@
-// --- Configuration ---
-// GLOBAL SCALE FACTOR: This fixes the "too big" issue (e.g., converting mm to meters)
+// ============================================================================
+// FUEL CELL STACK VISUALIZER - 3D Interactive Model
+// ============================================================================
+// This script creates an interactive 3D visualization of a fuel cell stack
+// using Three.js. It allows users to explode/assemble the stack and click
+// on components to view detailed information.
+// ============================================================================
+
+
+// ============================================================================
+// SECTION 1: CONFIGURATION & CONSTANTS
+// ============================================================================
+
+// SCALING: Converts model units (mm) to a reasonable display size
 const SCALE_FACTOR = 0.005;
 
-// 💡 GAP CONTROL: Increase this value (e.g., from 5.0 to 6.0) to MINIMIZE the gap in the ASSEMBLED stack.
+// ASSEMBLY: Controls spacing between layers in the assembled view
+// Increase (e.g., 15→20) to reduce gaps; decrease to increase gaps
 const COMPRESSION_RATIO = 15.0;
 
-// 💡 EXPLOSION CONTROL: Decrease this value (e.g., from 1.0 to 0.5) to make the EXPLODED view smaller.
+// EXPLOSION: Controls spread of layers in exploded view
+// Decrease (e.g., 0.3→0.2) to make explosion tighter; increase for more spread
 const EXPLOSION_SCALE = 0.3;
 
+// ANIMATION: Duration in seconds for explosion/assembly transitions
 const ANIMATION_DURATION = 1.2;
 
-// --- Manual Hotfix for Bipolar Plate Position ---
-const BIPOLAR_X_SHIFT = 0.0; // Positive moves Right, Negative moves Left
-const BIPOLAR_Z_SHIFT = 0.4; // Positive moves Backward, Negative moves Forward
-// ------------------------------------------------
+// BIPOLAR PLATE POSITIONING: Fine-tune adjustments for flow field channel plate
+const BIPOLAR_X_SHIFT = 0.0;  // Positive = Right, Negative = Left
+const BIPOLAR_Z_SHIFT = 0.4;  // Positive = Back, Negative = Forward
 
-// --- Manual Hotfix for GDL_Top Position ---
-const GDL_TOP_X_SHIFT = 1.2; // Positive moves Right, Negative moves Left
-const GDL_TOP_Z_SHIFT = 0.0; // Positive moves Backward, Negative moves Forward
-// ------------------------------------------
-
-// --- Manual Y-Shift Constants for all parts ---
+// Y-AXIS SHIFTS: Vertical fine-tuning for each component to fix alignment
 const STACK_HOLDER_Y_SHIFT = 0.16;
 const COLLECTOR_BOTTOM_Y_SHIFT = 0.12;
 const BIPOLAR_BOTTOM_LAYER_Y_SHIFT = 0.055;
@@ -30,11 +39,15 @@ const GDL_TOP_Y_SHIFT = -0.04;
 const BIPOLAR_TOP_LAYER_Y_SHIFT = -0.080;
 const COLLECTOR_TOP_Y_SHIFT = -0.12;
 const UPMOST_SUP_REVISIONED_Y_SHIFT = -0.185;
-// ----------------------------------------------
 
 
-// --- Core Three.js Setup ---
+// ============================================================================
+// SECTION 2: THREE.JS CORE SETUP
+// ============================================================================
+
 const container = document.getElementById('viewer-container');
+
+// Scene and camera configuration
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
     50,
@@ -43,58 +56,14 @@ const camera = new THREE.PerspectiveCamera(
     100
 );
 
-// --- Global raycaster + popup ---
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-window.addEventListener('pointerdown', (event) => {
-    if (isPopupOpen) return; // 🚫 do NOTHING if popup is open
-
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(componentMeshes, true);
-
-    if (!intersects.length) return;
-
-    const hit = intersects.find(i => i.object.isMesh);
-    if (!hit) return;
-
-    openPopup(hit.object.name);
-});
-
-
-// Layer order: 1 (Bottom) to 8 (Top). Offsets scaled to match SCALE_FACTOR.
-const COMPONENT_FILES = [
-    { name: 'end_plate', path: 'stack_holder_prt.glb', offset: -5.0, manualYShift: STACK_HOLDER_Y_SHIFT },
-
-    { name: 'current_collector', path: 'collector_layer_prt.glb', offset: -4.0, manualYShift: COLLECTOR_BOTTOM_Y_SHIFT },
-
-    { name: 'flow_field_channel_plate', path: 'bipolar_layer_prt.glb', offset: -3.0, manualYShift: BIPOLAR_BOTTOM_LAYER_Y_SHIFT },
-
-    { name: 'gas_diffusion_layer', path: 'layer_bot_gdl_prt.glb', offset: -2.0, manualYShift: GDL_BOTTOM_Y_SHIFT },
-
-    { name: 'catalyst_coated_membrane', path: 'ccm_layer_prt.glb', offset: -1.0, manualYShift: CCM_LAYER_Y_SHIFT },
-
-    { name: 'gas_diffusion_layer', path: 'layer_bot_gdl_prt.glb', offset: 0.0, manualYShift: GDL_TOP_Y_SHIFT },
-
-    { name: 'flow_field_channel_plate', path: 'bipolar_layer_prt.glb', offset: 1.0, manualYShift: BIPOLAR_TOP_LAYER_Y_SHIFT },
-
-    { name: 'current_collector', path: 'collector_top.glb', offset: 2.0, manualYShift: COLLECTOR_TOP_Y_SHIFT },
-
-    { name: 'end_plate', path: 'upmost_sup_revisioned_prt.glb', offset: 3.0, manualYShift: UPMOST_SUP_REVISIONED_Y_SHIFT },
-];
-
-
-let isPopupOpen = false;
-
+// Renderer with tone mapping for realistic lighting
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(container.clientWidth, container.clientHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 container.appendChild(renderer.domElement);
 
+// Orbit controls for user interaction
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
@@ -110,37 +79,50 @@ const cubeRenderTarget = pmremGenerator.fromScene(scene);
 scene.environment = cubeRenderTarget.texture;
 pmremGenerator.dispose();
 
-
 const directionalLight = new THREE.DirectionalLight(0xffffff, 3.0);
 directionalLight.position.set(10, 10, 5);
 scene.add(directionalLight);
 
 camera.position.set(0.5, 2.5, 2.5);
 
-// --- Model Loading Logic ---
-const loader = new THREE.GLTFLoader();
-const componentMeshes = [];
-const originalPositions = new Map();
-const clock = new THREE.Clock();
+
+// ============================================================================
+// SECTION 3: COMPONENT DATA
+// ============================================================================
+
+// Layer order: 1 (Bottom) to 9 (Top)
+// Each component references a 3D model file and its position in the stack
+const COMPONENT_FILES = [
+    { name: 'end_plate', path: 'stack_holder_prt.glb', offset: -5.0, manualYShift: STACK_HOLDER_Y_SHIFT },
+    { name: 'current_collector', path: 'collector_layer_prt.glb', offset: -4.0, manualYShift: COLLECTOR_BOTTOM_Y_SHIFT },
+    { name: 'flow_field_channel_plate', path: 'bipolar_layer_prt.glb', offset: -3.0, manualYShift: BIPOLAR_BOTTOM_LAYER_Y_SHIFT },
+    { name: 'gas_diffusion_layer', path: 'layer_bot_gdl_prt.glb', offset: -2.0, manualYShift: GDL_BOTTOM_Y_SHIFT },
+    { name: 'catalyst_coated_membrane', path: 'ccm_layer_prt.glb', offset: -1.0, manualYShift: CCM_LAYER_Y_SHIFT },
+    { name: 'gas_diffusion_layer', path: 'layer_bot_gdl_prt.glb', offset: 0.0, manualYShift: GDL_TOP_Y_SHIFT },
+    { name: 'flow_field_channel_plate', path: 'bipolar_layer_prt.glb', offset: 1.0, manualYShift: BIPOLAR_TOP_LAYER_Y_SHIFT },
+    { name: 'current_collector', path: 'collector_top.glb', offset: 2.0, manualYShift: COLLECTOR_TOP_Y_SHIFT },
+    { name: 'end_plate', path: 'upmost_sup_revisioned_prt.glb', offset: 3.0, manualYShift: UPMOST_SUP_REVISIONED_Y_SHIFT },
+];
 
 
-document.getElementById('popup-overlay')
-  .addEventListener('pointerdown', e => {
-    e.stopPropagation();
-  });
+// ============================================================================
+// SECTION 4: MATERIALS & COLORS
+// ============================================================================
 
-/**
- * Applies a white MeshStandardMaterial (PBR) and ensures geometry has vertex normals.
- * @param {THREE.Mesh | THREE.Group} mesh The component mesh.
- */
-
+// Component-specific colors (in hexadecimal)
 const COMPONENT_COLORS = {
-    end_plate: 0x676767,
-    current_collector: 0xf59e0b,
-    gas_diffusion_layer: 0x232323, 
-    catalyst_coated_membrane: 0x3b82f6,
+    end_plate: 0x676767,                    // Dark gray
+    current_collector: 0xf59e0b,            // Amber
+    gas_diffusion_layer: 0x232323,          // Black
+    catalyst_coated_membrane: 0x3b82f6,     // Blue
 };
 
+/**
+ * Applies PBR material and color to a component and computes normals.
+ * Stores original color for later restoration.
+ * @param {THREE.Mesh | THREE.Group} mesh - The component mesh to shade
+ * @param {string} componentName - Name of the component (used to look up color)
+ */
 function applyShadingAndColor(mesh, componentName) {
     const color = COMPONENT_COLORS[componentName] || 0xffffff;
 
@@ -152,23 +134,30 @@ function applyShadingAndColor(mesh, componentName) {
 
     mesh.traverse(child => {
         if (child.isMesh) {
-            child.material = material.clone(); // 🔥 important
+            child.material = material.clone();
             child.geometry.computeVertexNormals();
-
-            // Save original color for later restore
             child.userData.originalColor = material.color.clone();
         }
     });
 }
 
+/**
+ * Highlights a component by changing its color to dark gray.
+ * Used when a component is clicked/selected.
+ * @param {THREE.Group} group - The component group to highlight
+ */
 function highlightComponent(group) {
     group.traverse(child => {
         if (child.isMesh) {
-            child.material.color.set(0x676767); // red highlight
+            child.material.color.set(0x676767); // Dark gray highlight
         }
     });
 }
 
+/**
+ * Restores a component to its original color.
+ * @param {THREE.Group} group - The component group to reset
+ */
 function resetComponentColor(group) {
     group.traverse(child => {
         if (child.isMesh && child.userData.originalColor) {
@@ -179,75 +168,94 @@ function resetComponentColor(group) {
 
 
 
+
+// ============================================================================
+// SECTION 5: VISUALIZATION & EFFECTS
+// ============================================================================
+
 /**
- * Creates an outline using EdgesGeometry, which is better for complex meshes and holes.
- * This technique only draws lines where face angles are sharp, resulting in a cleaner look.
- * @param {THREE.Mesh} mesh The component mesh to outline.
+ * Creates an edge outline for a component using EdgesGeometry.
+ * Draws lines where face angles are sharp (≥30°), giving a clean technical look.
+ * @param {THREE.Mesh} mesh - The component mesh to outline
  */
 function createEdgeOutline(mesh) {
     const outlineMaterial = new THREE.LineBasicMaterial({
         color: 0x000000,
-        linewidth: 2, // Note: linewidth is often ignored by WebGL renderers
+        linewidth: 2,
     });
 
     mesh.traverse(child => {
         if (child.isMesh) {
-            // Create EdgesGeometry from the mesh's geometry.
-            // Angle (in degrees) determines which edges are drawn. Default is 1 degree.
-            const edges = new THREE.EdgesGeometry(child.geometry, 30); // 30 degrees is a good value for sharp edges
-
+            const edges = new THREE.EdgesGeometry(child.geometry, 30); // 30° threshold
             const line = new THREE.LineSegments(edges, outlineMaterial);
 
-            // Set the scale of the line to match the original mesh's scale relative to its parent (the group)
             line.scale.copy(child.scale);
             line.position.copy(child.position);
             line.rotation.copy(child.rotation);
 
-            // Add the line object to the same parent as the original mesh
             child.parent.add(line);
         }
     });
 }
 
-
+/**
+ * Creates a sprite-based label for a component.
+ * Labels appear above components in exploded view.
+ * @param {string} text - The label text to display
+ * @returns {THREE.Sprite} A sprite object ready to be added to the scene
+ */
 function createLabelSprite(text) {
     const canvas = document.createElement('canvas');
     canvas.width = 1024; 
     canvas.height = 256; 
 
     const ctx = canvas.getContext('2d');
-
     ctx.font = "70px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "white";
-
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
     const texture = new THREE.CanvasTexture(canvas);
-
-    const material = new THREE.SpriteMaterial({
-        map: texture,
-        transparent: true,
-    });
-
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
 
-    // BIG labels so they're visible relative to 0.005 scale model
+    // Scale labels to be visible relative to the small model
     sprite.scale.set(1.5, 0.4, 1);
 
     return sprite;
 }
 
-
+/**
+ * Converts a file name to human-readable format.
+ * Example: "bipolar_layer_prt" → "Bipolar Layer Prt"
+ * @param {string} fileName - The file or component name to humanize
+ * @returns {string} Formatted, human-readable name
+ */
 function humanizeFileName(fileName) {
   return fileName
-    .replace(/\.[^/.]+$/, "")    // remove extension
-    .replace(/_/g, " ")          // replace underscores
-    .replace(/\b\w/g, c => c.toUpperCase()); // capitalize words
+    .replace(/\.[^/.]+$/, "")    // Remove file extension
+    .replace(/_/g, " ")          // Replace underscores with spaces
+    .replace(/\b\w/g, c => c.toUpperCase()); // Capitalize first letter of each word
 }
 
 
+
+
+// ============================================================================
+// SECTION 6: MODEL LOADING
+// ============================================================================
+
+const loader = new THREE.GLTFLoader();
+const componentMeshes = [];
+const originalPositions = new Map();
+const clock = new THREE.Clock();
+
+/**
+ * Recursively loads all components from COMPONENT_FILES.
+ * Each component is positioned according to assembly layout and orientation.
+ * @param {number} index - Current component index being loaded
+ */
 function loadComponent(index) {
     if (index >= COMPONENT_FILES.length) {
         onAllComponentsLoaded();
@@ -271,86 +279,76 @@ function loadComponent(index) {
             });
 
             if (componentMesh) {
-
-                // Wrap the mesh in a Group for animation
+                // Wrap mesh in a Group for cleaner animation
                 const componentGroup = new THREE.Group();
                 componentGroup.add(componentMesh);
 
                 componentMesh.position.set(0, 0, 0);
 
+                // Apply material and color
                 applyShadingAndColor(componentMesh, component.name);
 
-                // --- Rotation & X/Z Hotfix Logic ---
+                // --- Rotation & Position Adjustments ---
 
-                // Base orientation
-                componentMesh.rotation.set(0, 0, 0);
-
-                // Default orientation for non-bipolar parts
+                // Default orientation (flip 90° for most parts)
                 if (component.name !== 'flow_field_channel_plate') {
                     componentMesh.rotation.x = -Math.PI / 2;
                 }
 
-                // Bipolar plate X/Z hotfix
+                // Bipolar plate specific positioning
                 if (component.name === 'flow_field_channel_plate') {
                     componentMesh.position.x = BIPOLAR_X_SHIFT;
                     componentMesh.position.z = BIPOLAR_Z_SHIFT;
                 }
 
-                // ✅ Flip ONLY the TOP bipolar plate (offset === 1)
-                if (
-                    component.name === 'flow_field_channel_plate' &&
-                    component.offset === 1.0
-                ) {
+                // Flip the TOP bipolar plate (offset === 1)
+                if (component.name === 'flow_field_channel_plate' && component.offset === 1.0) {
                     componentGroup.rotation.x = Math.PI;
                     componentMesh.position.z = 0.0;
                 }
 
-                if (
-                    component.name === 'end_plate' &&
-                    component.offset === 3.0
-                ) {
+                // Flip the TOP end plate (offset === 3)
+                if (component.name === 'end_plate' && component.offset === 3.0) {
                     componentGroup.rotation.x = Math.PI;
                     componentMesh.position.z = -0.4;
                 }
 
-
-                // Apply scale to the mesh
+                // Apply scaling
                 componentMesh.scale.set(SCALE_FACTOR, SCALE_FACTOR, SCALE_FACTOR);
 
-                // --- NEW Outline using EdgesGeometry for a clean look ---
+                // Add edge outlines for visual clarity
                 createEdgeOutline(componentMesh);
 
-
-                // Apply assembled Y position using compression ratio
+                // Calculate assembled position
                 const scaledOffset = component.offset;
                 const initialAssembledY = scaledOffset / COMPRESSION_RATIO;
 
-                // Set position on the Group (componentGroup)
                 componentGroup.position.y = initialAssembledY + manualYShift;
 
-
+                // Store explosion data
                 componentGroup.userData.explosionOffset = scaledOffset;
                 componentGroup.userData.manualYShift = manualYShift;
 
-                // --- Create and attach label ---
+                // Create and attach label
                 const cleanName = humanizeFileName(component.name);
                 const label = createLabelSprite(cleanName);
 
                 label.position.set(-0.5, 0.05, 0); 
-                label.visible = false; // hidden until exploded
+                label.visible = false; // Hidden in assembled view
 
                 componentGroup.add(label);
                 componentGroup.userData.label = label;
 
+                // Adjust label for flipped components
                 if (componentGroup.rotation.x === Math.PI) {
-                    label.rotation.x = Math.PI;       // flips it back upright
-                    label.position.y *= -1;           // move it back "above" the mesh
+                    label.rotation.x = Math.PI;
+                    label.position.y *= -1;
                 }
 
                 scene.add(componentGroup);
                 componentMeshes.push(componentGroup);
 
-                // Save assembled position (includes the manual shift)
+                // Save original position for animation
                 originalPositions.set(componentGroup, componentGroup.position.clone());
 
             } else {
@@ -359,7 +357,7 @@ function loadComponent(index) {
 
             loadComponent(index + 1);
         },
-        () => { },
+        undefined,
         error => {
             console.error(`Error loading ${component.path}:`, error);
             loadComponent(index + 1);
@@ -367,6 +365,28 @@ function loadComponent(index) {
     );
 }
 
+/**
+ * Callback invoked when all components finish loading.
+ * Initializes raycaster for component interaction.
+ */
+function onAllComponentsLoaded() {
+    console.log(`All ${componentMeshes.length} components loaded successfully.`);
+    setupRaycaster();
+}
+
+
+// ============================================================================
+// SECTION 7: UI & INTERACTION
+// ============================================================================
+
+let isPopupOpen = false;
+
+/**
+ * Opens the component information popup with description and extras.
+ * @param {string} name - Component name
+ * @param {string} descriptionHTML - HTML content for the description section
+ * @param {string} extraHTML - HTML content for videos, images, etc.
+ */
 function openPopup(name, descriptionHTML = "", extraHTML = "") {
     const popup = document.getElementById('component-popup');
     const title = document.getElementById('popup-title');
@@ -374,18 +394,14 @@ function openPopup(name, descriptionHTML = "", extraHTML = "") {
     const extra = document.getElementById('popup-extra');
 
     title.textContent = humanizeFileName(name);
-
-    // Flexible description (HTML allowed)
     desc.innerHTML = descriptionHTML;
-
-    // Extra content (videos, images, etc.)
     extra.innerHTML = extraHTML;
 
     popup.style.display = 'flex';
     isPopupOpen = true;
 }
 
-// Close button
+// Close button event listener
 document.getElementById('popup-close').addEventListener('click', () => {
     document.getElementById('component-popup').style.display = 'none';
     document.getElementById('popup-description').innerHTML = "";
@@ -393,76 +409,62 @@ document.getElementById('popup-close').addEventListener('click', () => {
     isPopupOpen = false;
 });
 
+// Prevent popup click from triggering raycaster
+document.getElementById('popup-overlay').addEventListener('pointerdown', e => {
+    e.stopPropagation();
+});
 
-
-// --- Add raycaster listener after all components are loaded ---
+/**
+ * Sets up raycaster for detecting component clicks.
+ * Displays popup with component information when clicked.
+ * Called after all models are loaded.
+ */
 function setupRaycaster() {
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
     window.addEventListener('pointerdown', (event) => {
+        // Ignore clicks while popup is open
+        if (isPopupOpen) return;
+
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(componentMeshes, true);
 
-        if (intersects.length > 0) {
-            const clickedObject = intersects.find(obj => obj.object.isMesh).object;
+        if (intersects.length === 0) return;
 
-            if (!clickedObject) return;
+        const clickedObject = intersects.find(obj => obj.object.isMesh)?.object;
+        if (!clickedObject) return;
 
-            console.log("Layer clicked:", clickedObject.name);
+        console.log("Component clicked:", clickedObject.name);
 
             let description = "";
             let extra = "";
 
+            // Component-specific information displayed in popup
             switch(clickedObject.name) {
-                case "stack_holder":
+                case "end_plate":
                     description = `
-                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
-                        What it is
-                        </h2>
-                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        The stack holder is the outer frame or casing that surrounds the entire fuel cell stack.
-                        It keeps all the layers aligned, protected, and held tightly together.
-                        Think of it as the body or shell that keeps the stack stable.
+                        <h2 style="font-size: 1.25rem;">What it is</h2>
+                        <p>
+                        The end plate sits at the very top and bottom of the fuel cell stack.
+                        It provides structural support and keeps all internal layers compressed.
                         </p>
 
-                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
-                        Functionality
-                        </h2>
-                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        Its main job is to apply even pressure across all the layers so they stay in close contact.
-                        This tight contact is important for gas sealing, electrical connection, and overall performance.
-                        The stack holder also protects the stack from outside forces, vibration, and movement.
-                        It helps support the plates, membranes, seals, and other parts inside.
+                        <h2 style="font-size: 1.25rem;">Functionality</h2>
+                        <p>
+                        End plates distribute clamping pressure evenly across the stack,
+                        prevent leaks, and protect the internal layers from bending or misalignment.
                         </p>
 
-                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
-                        How it helps in the fuel cell stack
-                        </h2>
-                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        Without the stack holder, the layers could shift, leak, or lose contact.
-                        This would reduce performance or cause the fuel and air to mix in the wrong places.
-                        By holding everything firmly, the stack holder makes sure the internal reactions happen safely and evenly.
-                        It also helps extend the life of the stack by preventing damage and keeping the inside structure compressed correctly.
-                        </p>
-
-                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
-                        How it is made
-                        </h2>
-                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
-                        Stack holders are usually made from strong materials such as stainless steel, aluminum, or reinforced plastic.
-                        The parts are shaped using machining, molding, or casting depending on the design.
-                        </p>
-                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
-                        Some stack holders use bolts, plates, or clamps to apply pressure.
-                        Others use a molded housing that fits the shape of the stack.
-                        The final assembly must be strong, precise, and able to handle heat, moisture, and vibration during operation.
+                        <h2 style="font-size: 1.25rem;">How it helps</h2>
+                        <p>
+                        Without end plates, the stack would lose compression, electrical contact,
+                        and sealing, leading to poor performance or failure.
                         </p>
                     `;
-                    // extra = `<video width="100%" controls><source src="bipolar_video.mp4" type="video/mp4"></video>`;
                     break;
 
 
@@ -639,21 +641,31 @@ function setupRaycaster() {
 
             openPopup(clickedObject.name, description, extra);
         }
-    });
+    );
 }
 
 
 // --- Call this when all components are loaded ---
 function onAllComponentsLoaded() {
-    console.log(`All ${componentMeshes.length} components loaded.`);
-    setupRaycaster(); // <--- Setup raycaster AFTER loading
+    console.log(`All ${componentMeshes.length} components loaded successfully.`);
+    setupRaycaster();
 }
 
+// Start loading all components
 loadComponent(0);
 
-// --- Component Animation Logic ---
+
+// ============================================================================
+// SECTION 8: ANIMATION LOGIC
+// ============================================================================
+
 const partsToAnimate = [];
 
+/**
+ * Animates explosion or assembly of fuel cell stack.
+ * Creates animation targets for all components.
+ * @param {boolean} explode - True for explosion, false for assembly
+ */
 function animateExplosion(explode) {
     if (componentMeshes.length === 0) return;
     partsToAnimate.length = 0;
@@ -668,15 +680,14 @@ function animateExplosion(explode) {
         targetPos.z = assembledPos.z;
 
         if (explode) {
+            // Exploded view: spread out layers and show labels
             targetPos.y = (offset * EXPLOSION_SCALE) + manualYShift;
-
             if (mesh.userData.label) {
                 mesh.userData.label.visible = true;
             }
-
         } else {
+            // Assembled view: compress layers and hide labels
             targetPos.y = assembledPos.y;
-
             if (mesh.userData.label) {
                 mesh.userData.label.visible = false;
             }
@@ -691,6 +702,7 @@ function animateExplosion(explode) {
     });
 }
 
+// Event listeners for explode/assemble buttons
 document.getElementById('explode-button').addEventListener('click', () => {
     animateExplosion(true);
 });
@@ -699,21 +711,31 @@ document.getElementById('assemble-button').addEventListener('click', () => {
     animateExplosion(false);
 });
 
+
+// ============================================================================
+// SECTION 9: MAIN ANIMATION LOOP
+// ============================================================================
+
+/**
+ * Main render loop using requestAnimationFrame.
+ * Updates animation progress, camera controls, and renders the scene.
+ */
 function animate() {
     requestAnimationFrame(animate);
 
     const delta = clock.getDelta();
     const duration = ANIMATION_DURATION;
 
+    // Update animation progress for all moving parts
     partsToAnimate.forEach(anim => {
         anim.elapsed += delta;
         const progress = Math.min(1, anim.elapsed / duration);
-
         anim.part.position.lerpVectors(anim.start, anim.target, progress);
     });
 
     controls.update();
     
+    // Keep labels facing camera in exploded view
     componentMeshes.forEach(mesh => {
         const label = mesh.userData.label;
         if (label && label.visible) {
@@ -722,7 +744,7 @@ function animate() {
     });
 
     renderer.render(scene, camera);
-
 }
 
+// Start the animation loop
 animate();
