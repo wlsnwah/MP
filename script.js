@@ -466,8 +466,6 @@ function setupRaycaster() {
                         </p>
                     `;
                     break;
-
-
                 case "current_collector":
                     description = 
                     `
@@ -475,65 +473,132 @@ function setupRaycaster() {
                         What it is
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        The current collector is a thin plate or mesh that sits on the outside of the fuel cell layers and helps carry electricity out of the cell.
+                        The current collector is a thin plate or mesh inside a fuel cell stack that helps move electricity out of the cell.
+                        It sits on the outside of the other layers and touches the part that produces the electrical energy.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         Functionality
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        It collects electrons produced during the fuel cell reaction and sends them to the external circuit. It also helps spread the electrical flow evenly and keeps good contact between layers.
+                        Its job is to pick up the electrons created during the fuel cell reaction and guide them to the outside circuit.
+                        It also spreads the electrical flow evenly so the cell works smoothly.
+                        In some designs, it also helps press the inner layers together so everything stays in good contact.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         How it helps in the fuel cell stack
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        Without a current collector, the fuel cell cannot supply power. It connects the reaction inside the cell to usable electrical output and reduces energy loss.
+                        Without the current collector, the fuel cell cannot deliver power to anything outside the stack.
+                        It acts like a bridge between the chemical reaction inside and the electrical output outside.
+                        It also reduces energy loss by making sure the electricity travels through a low resistance path,
+                        improving the overall performance of the stack.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         How it is made
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
-                        Current collectors are usually made from conductive metals like stainless steel, nickel, or copper. They are shaped by stamping or cutting and may be coated to improve conductivity and resist corrosion.
+                        Current collectors are usually made from metals that conduct electricity very well.
+                        Common choices are thin stainless steel plates, nickel plates, or copper plates.
+                        Some designs use metal meshes or metal foams.
+                        </p>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        They may also be given a coating to prevent rust, improve contact, or reduce resistance.
+                        These coatings can be carbon based or special thin metal layers.
+                        The plates are shaped by stamping, cutting, or pressing so they fit perfectly into the stack.
                         </p>
                     `;
                     break;
-
-
                 case "flow_field_channel_plate":
                     description = `
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         What it is
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        The bipolar plate is a solid plate placed between two fuel cells in a stack. Each side of the plate faces a different cell, separating them while allowing them to work together.
+                        The bipolar plate is a solid plate that sits between two fuel cells inside the stack.
+                        One side of the plate faces one cell, and the other side faces the next cell.
+                        It separates the cells while also helping them work together.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         Functionality
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        It has small channels that guide fuel and air across the cell. It also carries electricity from one cell to the next, helping increase the total voltage. At the same time, it helps manage heat and remove water.
+                        The plate has small channels carved into it.
+                        These channels guide the fuel and air across the cell surface.
+                        The plate also carries electricity from one cell to the next, helping them connect in a series to build higher voltage.
+                        It also helps remove heat and water from the cell, keeping everything balanced.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         How it helps in the fuel cell stack
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        Bipolar plates make sure gases flow evenly and cells are connected electrically. They allow the stack to deliver higher power and keep temperature and water levels stable during operation.
+                        Without the bipolar plate, the stack would not be able to move gases properly or link the cells together electrically.
+                        The plate makes sure the fuel and air spread evenly so the reaction happens smoothly.
+                        It also joins each cell to the next one, so the total power of the whole stack can be delivered safely.
+                        It supports temperature control and water control, which keeps the stack stable over long use.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         How it is made
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
-                        They are commonly made from graphite, coated metals, or carbon-based composites. Channels are formed by machining, stamping, or molding. Metal plates are usually coated to prevent corrosion and reduce resistance.
+                        Bipolar plates are usually made from graphite, coated metal, or special polymers mixed with carbon.
+                        The channels are made by machining, stamping, molding, or pressing.
+                        </p>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        When metal is used, a thin protective coating is added to stop rust and reduce electrical resistance.
+                        The final shape must be precise so the gases flow correctly and the plate fits tightly in the stack.
                         </p>
                     `;
                     break;
+                case "gas_distribution_layer":
+                    description = `
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        What it is
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        The gas distribution layer is a porous sheet that sits between the bipolar plate and the inner layers of the fuel cell.
+                        It looks a bit like a stiff sponge or felt made from carbon.
+                        </p>
 
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        Functionality
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Its job is to spread the fuel and air evenly across the entire reaction area.
+                        Because it is porous, gases can move through it in many directions.
+                        It also helps move heat and water out of the reaction zone.
+                        Another small but important role is helping the electrical current travel smoothly from the inner layers to the plates.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it helps in the fuel cell stack
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
+                        Without the gas distribution layer, gases would only travel through the main channels of the bipolar plate and would not reach all parts of the cell.
+                        This would create uneven reactions and lower performance.
+                        The layer makes sure every part of the cell gets the right amount of fuel and air.
+                        It also supports water control by letting extra water escape, and it helps keep the temperature steady.
+                        </p>
+
+                        <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
+                        How it is made
+                        </h2>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
+                        The layer is usually made from carbon paper or carbon cloth.
+                        Carbon paper is made by pressing carbon fibers into a thin sheet.
+                        Carbon cloth is woven from carbon yarns.
+                        </p>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        Both types are treated with a water resistant coating to help manage moisture.
+                        Sometimes a thin layer of micro porous material is added on top to improve gas flow and water control.
+                        </p>
+                    `;
+                    break;
 
                 case "gas_diffusion_layer":
                     description = `
@@ -541,32 +606,44 @@ function setupRaycaster() {
                         What it is
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        The gas distribution layer is a porous carbon sheet placed between the bipolar plate and the inner cell layers. It looks like stiff felt or a sponge made of carbon.
+                        The gas distribution layer is a porous sheet that sits between the bipolar plate and the inner layers of the fuel cell.
+                        It looks a bit like a stiff sponge or felt made from carbon.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         Functionality
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        It spreads fuel and air evenly across the reaction area. It also helps remove heat and water and allows electricity to pass from the inner layers to the plates.
+                        Its job is to spread the fuel and air evenly across the entire reaction area.
+                        Because it is porous, gases can move through it in many directions.
+                        It also helps move heat and water out of the reaction zone.
+                        Another small but important role is helping the electrical current travel smoothly from the inner layers to the plates.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         How it helps in the fuel cell stack
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        Without this layer, gases would not reach all parts of the cell evenly, causing poor performance. It helps maintain steady reactions, good water control, and stable temperature.
+                        Without the gas distribution layer, gases would only travel through the main channels of the bipolar plate and would not reach all parts of the cell.
+                        This would create uneven reactions and lower performance.
+                        The layer makes sure every part of the cell gets the right amount of fuel and air.
+                        It also supports water control by letting extra water escape, and it helps keep the temperature steady.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         How it is made
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
-                        It is made from carbon paper or carbon cloth formed from carbon fibers. The material is often coated to repel water, and sometimes a thin micro-porous layer is added to improve gas flow and moisture control.
+                        The layer is usually made from carbon paper or carbon cloth.
+                        Carbon paper is made by pressing carbon fibers into a thin sheet.
+                        Carbon cloth is woven from carbon yarns.
+                        </p>
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        Both types are treated with a water resistant coating to help manage moisture.
+                        Sometimes a thin layer of micro porous material is added on top to improve gas flow and water control.
                         </p>
                     `;
                     break;
-
                 
                 case "catalyst_coated_membrane":
                     description = `
@@ -574,28 +651,38 @@ function setupRaycaster() {
                         What it is
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        The catalyst coated membrane is a very thin plastic-like sheet at the center of the fuel cell. Both sides are covered with a catalyst that helps the chemical reaction happen.
+                        The catalyst coated membrane is the heart of the fuel cell.
+                        It is a thin plastic like sheet that can move charged particles, and both sides of this sheet are covered with a special powder called the catalyst.
+                        This catalyst helps the fuel cell reaction happen faster.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         Functionality
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        The membrane lets charged particles pass through but blocks gases. The catalyst helps split the fuel into electrons and charged particles. The electrons flow through an external circuit to make electricity, while the charged particles move through the membrane and react with air to form water.
+                        The membrane lets certain charged particles pass through it while blocking gases.
+                        The catalyst on each side helps break the fuel and air into smaller parts so they can react.
+                        On one side, the fuel splits into electrons and charged particles.
+                        The charged particles move through the membrane, while the electrons take an outside path to create electricity.
+                        On the other side, the charged particles meet the air and complete the reaction to form water.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         How it helps in the fuel cell stack
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 16px; color: #333;">
-                        This is where electricity is actually produced. Without this layer, the fuel cell cannot work. It keeps fuel and air separated and forces electrons to travel through the circuit, creating usable power.
+                        This layer is where almost all of the energy conversion happens.
+                        Without it, the fuel cell cannot create electricity.
+                        It holds the two main chemical reactions and keeps the fuel and air separated so they do not mix directly.
+                        It also allows the charged particles to travel safely while forcing the electrons to flow through the circuit that produces useful power.
                         </p>
 
                         <h2 style="font-size: 1.25rem; margin-bottom: 6px; color: #1f2933;">
                         How it is made
                         </h2>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
-                        The catalyst coated membrane is made using a catalyst ink, which contains platinum supported on carbon, Nafion ionomer, alcohol, and deionised water. This mixture is applied onto a Proton Exchange Membrane (PEM), usually by spraying or coating. After application, the membrane is dried and cut to the required size.
+                        The membrane is usually made from a special plastic material that can carry charged particles.
+                        This membrane is cleaned, prepared, and then coated with a very thin layer of catalyst powder, usually a precious metal mixed with carbon.
                         </p>
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 20px; color: #333;">
                         The Proton Exchange Membrane is commonly made from Nafion because it has high proton conductivity and very low electronic conductivity. It allows hydrogen protons to move from the anode to the cathode while blocking electrons and gases.
@@ -605,8 +692,6 @@ function setupRaycaster() {
                         </video>
                     `;
                     break;
-
-
                 case "end_plate":
                     description = `
                         <h2 style="font-size: 1.25rem;">What it is</h2>
