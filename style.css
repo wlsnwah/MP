@@ -35,3 +35,101 @@ button {
 button:hover {
     background-color: #0056b3;
 }
+
+ion-icon {
+  color: black;
+}
+
+#component-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-out;
+}
+
+#popup-content {
+  background: rgba(255,255,255,0.95);
+  border-radius: 18px;
+  max-width: 900px;
+  width: 92%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 32px 36px 36px;
+  box-shadow: 0 20px 80px rgba(0,0,0,0.35);
+  position: relative;
+  transform: scale(0.96);
+  animation: popIn 0.2s ease-out forwards;
+  font-family: Inter, Helvetica, sans-serif;
+}
+
+#popup-header {
+  margin-bottom: 16px;
+}
+
+#popup-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+#popup-accent-bar {
+  width: 80px;
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #3b82f6, #22c55e);
+  margin-top: 6px;
+}
+
+#popup-description h2 {
+  font-size: 1.1rem;
+  margin-top: 20px;
+  color: #111827;
+}
+
+#popup-description p {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: #374151;
+}
+
+#popup-extra video,
+#popup-extra img {
+  width: 100%;
+  border-radius: 12px;
+  margin-top: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+/* Close button */
+#popup-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 18px;
+  border: none;
+  background: rgba(0,0,0,0.05);
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+#popup-close:hover {
+  background: rgba(0,0,0,0.15);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

@@ -4,49 +4,28 @@
     <title>Fuel Cell Stack Exploder</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    </head>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+
 <body>
     <div id="popup-overlay">
-    <div id="component-popup" 
-        style="
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        ">
-        <div id="popup-content" 
-            style="
-                background: white;
-                padding: 20px;
-                border-radius: 12px;
-                max-width: 800px;
-                width: 90%;
-                max-height: 90%;
-                overflow-y: auto;
-                text-align: center;
-                position: relative;
-            ">
-            <button id="popup-close"
-                style="
-                    position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    font-size: 16px;
-                    padding: 6px 12px;
-                    cursor: pointer;
-                ">X</button>
+        <div id="component-popup">
+            <div id="popup-content">
 
-            <h1 id="popup-title"></h1>
-            <p id="popup-description"></p>
-            <div id="popup-extra"></div> <!-- placeholder for video or other content -->
+            <button id="popup-close"><ion-icon name="close-outline"></ion-icon></button>
+
+            <div id="popup-header">
+                <h1 id="popup-title"></h1>
+                <div id="popup-accent-bar"></div>
+            </div>
+
+            <div id="popup-description"></div>
+
+            <div id="popup-extra"></div>
+
+            </div>
         </div>
-    </div>
     </div>
  
     <div id="button-container">
