@@ -597,11 +597,11 @@ function setupRaycaster() {
                         <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 10px; color: #333;">
                         The catalyst coated membrane is made using a catalyst ink, which contains platinum supported on carbon, Nafion ionomer, alcohol, and deionised water. This mixture is applied onto a Proton Exchange Membrane (PEM), usually by spraying or coating. After application, the membrane is dried and cut to the required size.
                         </p>
-                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 0; color: #333;">
+                        <p style="font-size: 1rem; line-height: 1.6; margin-bottom: 20px; color: #333;">
                         The Proton Exchange Membrane is commonly made from Nafion because it has high proton conductivity and very low electronic conductivity. It allows hydrogen protons to move from the anode to the cathode while blocking electrons and gases.
                         </p>
-                        <video width="320" height="240" controls>
-                            <source src="MpVideo2.mp4" type="video/mp4">
+                        <video width="100%" controls>
+                            <source src="MpVideo3.mp4" type="video/mp4">
                         </video>
                     `;
                     break;
