@@ -123,6 +123,7 @@ Changes may take **1–2 minutes** to update.
 ### ❌ “Permission denied” when pushing
 
 ➡ You need to log in to GitHub in your terminal. GitHub may open a browser popup.
+➡ You can use 'gh auth login' in the terminal, and follow the prompts.
 
 ---
 
