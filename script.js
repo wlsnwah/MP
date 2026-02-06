@@ -435,16 +435,19 @@ function setupRaycaster() {
 
         if (intersects.length === 0) return;
 
-        const clickedObject = intersects.find(obj => obj.object.isMesh)?.object;
-        if (!clickedObject) return;
+        const clickedMesh = intersects.find(obj => obj.object.isMesh)?.object;
+        if (!clickedMesh) return;
 
-        console.log("Component clicked:", clickedObject.name);
+        const componentGroup = clickedMesh.parent;
+        const componentName = componentGroup.children[0].name;
+
+        console.log("Component clicked:", componentName);
 
             let description = "";
             let extra = "";
 
             // Component-specific information displayed in popup
-            switch(clickedObject.name) {
+            switch(componentName) {
                 case "end_plate":
                     description = `
                         <h2 style="font-size: 1.25rem;">What it is</h2>
@@ -724,7 +727,7 @@ function setupRaycaster() {
             // Highlight selected
             highlightComponent(intersects[0].object.parent);
 
-            openPopup(clickedObject.name, description, extra);
+            openPopup(componentName, description, extra);
         }
     );
 }
