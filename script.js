@@ -427,8 +427,10 @@ function setupRaycaster() {
         // Ignore clicks while popup is open
         if (isPopupOpen) return;
 
+        // Use canvas bounding rect to compute normalized device coords.
+        // This fixes coordinate mismatches on mobile or when the canvas
+        // doesn't fill the full window (embedded, scrolled, or CSS-scaled).
         const rect = renderer.domElement.getBoundingClientRect();
-
         mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
@@ -437,19 +439,32 @@ function setupRaycaster() {
 
         if (intersects.length === 0) return;
 
-        const clickedMesh = intersects.find(obj => obj.object.isMesh)?.object;
-        if (!clickedMesh) return;
+        // Find the first intersection that belongs to a known component
+        const componentNames = COMPONENT_FILES.map(c => c.name);
+        const hit = intersects.find(i => {
+            let obj = i.object;
+            while (obj) {
+                if (componentNames.includes(obj.name)) return true;
+                obj = obj.parent;
+            }
+            return false;
+        });
+        if (!hit) return;
 
-        const componentGroup = clickedMesh.parent;
-        const componentName = componentGroup.children[0].name;
+        // Climb from the hit object to the named component mesh
+        let clickedObject = hit.object;
+        while (clickedObject && !componentNames.includes(clickedObject.name)) {
+            clickedObject = clickedObject.parent;
+        }
+        if (!clickedObject) return;
 
-        console.log("Component clicked:", componentName);
+        console.log("Component clicked:", clickedObject.name);
 
             let description = "";
             let extra = "";
 
             // Component-specific information displayed in popup
-            switch(componentName) {
+            switch(clickedObject.name) {
                 case "end_plate":
                     description = `
                         <h2 style="font-size: 1.25rem;">What it is</h2>
@@ -729,7 +744,7 @@ function setupRaycaster() {
             // Highlight selected
             highlightComponent(intersects[0].object.parent);
 
-            openPopup(componentName, description, extra);
+            openPopup(clickedObject.name, description, extra);
         }
     );
 }
